@@ -1,0 +1,43 @@
+{
+  "name": "student-checkin-dashboard",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prepare:gas": "node scripts/buildForGAS.cjs",
+    "deploy:gas": "npm run build && npm run prepare:gas && cd gas-deploy && clasp push",
+    "setup:gas": "cd gas-deploy && clasp create --type webapp --title '學生報到系統'"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.1.0",
+    "d3": "^7.9.0",
+    "echarts": "^5.4.3",
+    "element-plus": "^2.4.2",
+    "vue": "^3.3.4",
+    "vue-echarts": "^6.6.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "@google/clasp": "^2.5.0",
+    "@vitejs/plugin-vue": "^4.4.0",
+    "unplugin-auto-import": "^0.16.6",
+    "unplugin-vue-components": "^0.25.2",
+    "vite": "^4.4.5"
+  },
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "ie": "11"
+          }
+        }
+      ]
+    ]
+  }
+}
