@@ -164,7 +164,7 @@ const autoPlayInterval = ref(10) // 預設10秒
 
 // 分頁相關
 const currentPage = ref(1)
-const pageSize =  10 // 科幻模式建議較少行數以便顯示效果
+const pageSize = ref(10) // 科幻模式建議較少行數以便顯示效果
 
 // 響應式列寬和字體大小
 const nameColumnWidth = computed(() => isMobile.value ? 100 : 150)
@@ -386,6 +386,12 @@ const loadUserPreferences = () => {
   if (savedAutoPlayInterval) {
     autoPlayInterval.value = parseInt(savedAutoPlayInterval)
   }
+  
+  // 載入分頁大小設定
+  const savedTablePageSize = localStorage.getItem('tablePageSize')
+  if (savedTablePageSize) {
+    pageSize.value = parseInt(savedTablePageSize)
+  }
 }
 
 // 監聽 localStorage 變化
@@ -404,11 +410,19 @@ onMounted(() => {
   loadUserPreferences()
   window.addEventListener('resize', updateScreenSize)
   window.addEventListener('storage', handleStorageChange)
+  
+  // 監聽分頁大小設定變化
+  window.addEventListener('tablePagesizeChange', (event) => {
+    pageSize.value = event.detail.pageSize
+    currentPage.value = 1 // 重置到第一頁
+    console.log(`📋 分頁大小已更新為: ${pageSize.value}位`)
+  })
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateScreenSize)
   window.removeEventListener('storage', handleStorageChange)
+  window.removeEventListener('tablePagesizeChange', () => {})
 })
 
 // 表格樣式

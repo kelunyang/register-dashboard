@@ -118,6 +118,20 @@
             :statistics="statistics"
             :filterType="selectedFilterType"
           />
+          
+          <!-- 公告區塊 -->
+           {{noticeContent}}
+          <div v-if="noticeContent" class="notice-section">
+            <el-card class="notice-card">
+              <template #header>
+                <div class="notice-header">
+                  <el-icon class="notice-icon"><InfoFilled /></el-icon>
+                  <h4>活動公告</h4>
+                </div>
+              </template>
+              <div class="notice-content" v-html="noticeContent"></div>
+            </el-card>
+          </div>
         </div>
 
         <!-- 第二重要：學生報到清單 -->
@@ -141,6 +155,19 @@
                 :statistics="statistics"
                 :filterType="selectedFilterType"
               />
+              
+              <!-- 桌面版公告區塊 -->
+              <div v-if="noticeContent" class="notice-section">
+                <el-card class="notice-card">
+                  <template #header>
+                    <div class="notice-header">
+                      <el-icon class="notice-icon"><InfoFilled /></el-icon>
+                      <h4>活動公告</h4>
+                    </div>
+                  </template>
+                  <div class="notice-content" v-html="noticeContent"></div>
+                </el-card>
+              </div>
             </div>
             
             <!-- 流量表 -->
@@ -289,6 +316,17 @@ const flowChartConfig = ref({
 
 // 計算屬性
 const isActivityActive = computed(() => activityStatus.value.status === 'active')
+
+// 界面顯示設定
+const showNoticeSection = ref(true)
+
+// 公告內容計算屬性
+const noticeContent = computed(() => {
+  if (!showNoticeSection.value || !activityStatus.value.currentEvent?.noticeMD) {
+    return null
+  }
+  return markdownService.noticeMarkdownToHtml(activityStatus.value.currentEvent.noticeMD)
+})
 
 // 統一的覆蓋層狀態 - 這是關鍵改動
 const overlayStatus = computed(() => {
@@ -1154,6 +1192,17 @@ onMounted(async () => {
     ElMessage.warning('瀏覽器不支援本地存儲，部分功能可能無法正常使用')
   }
   
+  // 載入界面顯示設定
+  const savedShowNoticeSection = localStorage.getItem('showNoticeSection')
+  if (savedShowNoticeSection !== null) {
+    showNoticeSection.value = savedShowNoticeSection === 'true'
+  }
+  
+  // 監聽公告區塊顯示設定變化
+  window.addEventListener('noticeSectionDisplayChange', (event) => {
+    showNoticeSection.value = event.detail.show
+  })
+  
   // 載入 UI 設定
   loadUISettings()
   
@@ -1197,6 +1246,9 @@ onUnmounted(() => {
     clearInterval(refreshCountdownTimer.value)
     refreshCountdownTimer.value = null
   }
+  
+  // 清理事件監聽器
+  window.removeEventListener('noticeSectionDisplayChange', () => {})
 })
 </script>
 
@@ -1973,6 +2025,21 @@ onUnmounted(() => {
   .dynamic-notice-content :deep(.notice-list) {
     padding-left: 16px;
   }
+  
+  /* 手機版公告樣式 */
+  .notice-content {
+    padding: 15px;
+    font-size: calc(var(--base-font-size) * 0.8125);
+  }
+  
+  .notice-header h4 {
+    font-size: calc(var(--base-font-size) * 0.9375);
+  }
+  
+  .notice-content :deep(h1) { font-size: calc(var(--base-font-size) * 1.25); }
+  .notice-content :deep(h2) { font-size: calc(var(--base-font-size) * 1.125); }
+  .notice-content :deep(h3) { font-size: var(--base-font-size); }
+  .notice-content :deep(h4) { font-size: calc(var(--base-font-size) * 0.875); }
 }
 
 .ended-activity-notice {
@@ -2055,6 +2122,129 @@ onUnmounted(() => {
 :deep(.el-alert__title) {
   color: #ffffff;
   font-weight: 500;
+}
+
+/* 公告區塊樣式 */
+.notice-section {
+  margin-top: 20px;
+}
+
+.notice-card {
+  background-color: #2d2d2d;
+  border: 1px solid #4a4a4a;
+}
+
+.notice-card :deep(.el-card__header) {
+  background-color: #3a3a3a;
+  border-bottom: 1px solid #4a4a4a;
+  padding: 15px 20px;
+}
+
+.notice-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notice-icon {
+  color: #409eff;
+  font-size: calc(var(--base-font-size) * 1.125);
+}
+
+.notice-header h4 {
+  color: #ffffff;
+  margin: 0;
+  font-size: calc(var(--base-font-size) * 1.0);
+  font-weight: bold;
+}
+
+.notice-content {
+  padding: 20px;
+  line-height: 1.6;
+  color: #ffffff;
+  font-size: calc(var(--base-font-size) * 0.875);
+}
+
+/* Markdown 內容樣式 */
+.notice-content :deep(h1),
+.notice-content :deep(h2),
+.notice-content :deep(h3),
+.notice-content :deep(h4),
+.notice-content :deep(h5),
+.notice-content :deep(h6) {
+  color: #409eff;
+  margin: 16px 0 8px 0;
+  font-weight: bold;
+}
+
+.notice-content :deep(h1) { font-size: calc(var(--base-font-size) * 1.5); }
+.notice-content :deep(h2) { font-size: calc(var(--base-font-size) * 1.25); }
+.notice-content :deep(h3) { font-size: calc(var(--base-font-size) * 1.125); }
+.notice-content :deep(h4) { font-size: var(--base-font-size); }
+.notice-content :deep(h5) { font-size: calc(var(--base-font-size) * 0.875); }
+.notice-content :deep(h6) { font-size: calc(var(--base-font-size) * 0.75); }
+
+.notice-content :deep(p) {
+  margin: 8px 0;
+  color: #ffffff;
+}
+
+.notice-content :deep(ul),
+.notice-content :deep(ol) {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: #ffffff;
+}
+
+.notice-content :deep(li) {
+  margin: 4px 0;
+}
+
+.notice-content :deep(strong) {
+  color: #67C23A;
+  font-weight: bold;
+}
+
+.notice-content :deep(em) {
+  color: #E6A23C;
+  font-style: italic;
+}
+
+.notice-content :deep(code) {
+  background-color: rgba(0, 0, 0, 0.3);
+  color: #E6A23C;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: calc(var(--base-font-size) * 0.8125);
+}
+
+.notice-content :deep(pre) {
+  background-color: rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.notice-content :deep(blockquote) {
+  border-left: 4px solid #409eff;
+  background-color: rgba(64, 158, 255, 0.1);
+  padding: 8px 12px;
+  margin: 12px 0;
+  font-style: italic;
+  color: #cccccc;
+}
+
+.notice-content :deep(a) {
+  color: #409eff;
+  text-decoration: none;
+}
+
+.notice-content :deep(a:hover) {
+  color: #66b1ff;
+  text-decoration: underline;
 }
 
 /* 滾動條樣式 */

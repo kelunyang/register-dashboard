@@ -547,6 +547,7 @@ class ApiService {
               id: 'sheet1',
               name: '[2024]資訊科報到活動',
               status: 'active',
+              welcomeMD: this.getMockNoticeMarkdown('sheet1'),
               noticeMD: this.getMockNoticeMarkdown('sheet1'),
               currentEvent: {
                 title: '[2024]資訊科報到活動',
@@ -559,6 +560,7 @@ class ApiService {
               id: 'sheet2', 
               name: '[2024]電機科報到活動',
               status: 'pending',
+              welcomeMD: this.getMockNoticeMarkdown('sheet2'),
               noticeMD: this.getMockNoticeMarkdown('sheet2'),
               currentEvent: {
                 title: '[2024]電機科報到活動',
@@ -571,6 +573,7 @@ class ApiService {
               id: 'sheet3',
               name: '[2024]機械科報到活動', 
               status: 'ended',
+              welcomeMD: this.getMockNoticeMarkdown('sheet3'),
               noticeMD: this.getMockNoticeMarkdown('sheet3'),
               currentEvent: {
                 title: '[2024]機械科報到活動',
@@ -583,6 +586,7 @@ class ApiService {
               id: 'sheet4',
               name: '[2024]建築科報到活動',
               status: 'pending',
+              welcomeMD: this.getMockNoticeMarkdown('sheet4'),
               noticeMD: this.getMockNoticeMarkdown('sheet4'),
               currentEvent: {
                 title: '[2024]建築科報到活動',
@@ -595,6 +599,7 @@ class ApiService {
               id: 'sheet5',
               name: '[2024]化工科報到活動',
               status: 'active',
+              welcomeMD: this.getMockNoticeMarkdown('sheet5'),
               noticeMD: this.getMockNoticeMarkdown('sheet5'),
               currentEvent: {
                 title: '[2024]化工科報到活動',
@@ -1024,6 +1029,7 @@ class ApiService {
               startTimestamp: startTimestamp,
               endTimestamp: endTimestamp,
               isValid: true,
+              welcomeMD: this.getMockNoticeMarkdown(sheetId),
               noticeMD: this.getMockNoticeMarkdown(sheetId)
             },
             targetSheetId: sheetId,

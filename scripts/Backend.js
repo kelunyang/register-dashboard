@@ -2,6 +2,14 @@
 // Google Apps Script 後端 - 修正版本 (正確的數據關聯邏輯)
 // ========================================
 
+// 簡單的可控制 logging 函數
+function log(...args) {
+  const logEnabled = PropertiesService.getScriptProperties().getProperty('LOG_ENABLED') !== 'false'
+  if (logEnabled) {
+    log(...args)
+  }
+}
+
 const CONFIG = {
   CONTROL_SHEET_NAME: '條碼列表',
   DISPLAY_CONFIG_SHEET_NAME: '看板顯示欄位',
@@ -18,6 +26,7 @@ function getConfig() {
   };
 }
 
+
 // ========================================
 // 前端可直接調用的 API 函數
 // ========================================
@@ -27,7 +36,7 @@ function getConfig() {
  */
 function getAvailableSheets() {
   try {
-    console.log('📋 獲取可用表單列表（輕量版）');
+    log('📋 獲取可用表單列表（輕量版）');
     
     const controlData = getControlSheetData();
     const currentTime = new Date().getTime();
@@ -78,14 +87,14 @@ function getAvailableSheets() {
       }
     }
     
-    console.log(`✅ 找到 ${sheets.length} 個表單，預設表單: ${defaultSheetId}`);
-    console.log('📊 表單狀態統計:');
+    log(`✅ 找到 ${sheets.length} 個表單，預設表單: ${defaultSheetId}`);
+    log('📊 表單狀態統計:');
     const statusCounts = sheets.reduce((acc, sheet) => {
       acc[sheet.status] = (acc[sheet.status] || 0) + 1;
       return acc;
     }, {});
     Object.entries(statusCounts).forEach(([status, count]) => {
-      console.log(`   - ${status}: ${count} 個`);
+      log(`   - ${status}: ${count} 個`);
     });
     
     return {
@@ -117,7 +126,7 @@ function getAvailableSheets() {
  */
 function getConfigDetails(sheetId) {
   try {
-    console.log(`📋 獲取表單 ${sheetId} 的詳細配置信息`);
+    log(`📋 獲取表單 ${sheetId} 的詳細配置信息`);
     
     const displayConfig = getDisplayConfigFromSheet(sheetId);
     if (!displayConfig.isValid) {
@@ -219,7 +228,7 @@ function getConfigDetails(sheetId) {
  */
 function getJoinedDataFromSheet(sheetId) {
   try {
-    console.log(`🔗 開始關聯表單 ${sheetId} 的數據`);
+    log(`🔗 開始關聯表單 ${sheetId} 的數據`);
     
     const config = getConfig();
     const ss = SpreadsheetApp.openById(sheetId);
@@ -253,7 +262,7 @@ function getJoinedDataFromSheet(sheetId) {
     }
     
     const configValues = checkinSheet.getRange(1, 3, 4, lastCol - 2).getValues();
-    console.log(`📋 讀取程式寫入表配置：${configValues[0].length} 個欄位`);
+    log(`📋 讀取程式寫入表配置：${configValues[0].length} 個欄位`);
     
     // 2. 解析欄位配置
     const inputColumns = [];
@@ -289,7 +298,7 @@ function getJoinedDataFromSheet(sheetId) {
       };
     }
     
-    console.log(`🔑 找到主鍵欄位: ${primaryKeyColumn.name}`);
+    log(`🔑 找到主鍵欄位: ${primaryKeyColumn.name}`);
     
     // 3. 讀取程式寫入表的數據（第5行開始）
     let checkinData = [];
@@ -302,7 +311,7 @@ function getJoinedDataFromSheet(sheetId) {
       checkinData = getDataFromRange(checkinDataRange, ['Timestamp', 'Account', ...inputColumns.map(c => c.name)]);
     }
     
-    console.log(`📊 程式寫入表數據：${checkinData.length} 筆（${totalRows < 5 ? '程式寫入表為空，返回空陣列' : '有數據'}）`);
+    log(`📊 程式寫入表數據：${checkinData.length} 筆（${totalRows < 5 ? '程式寫入表為空，返回空陣列' : '有數據'}）`);
     
     // 4. 讀取原始資料表
     const rawDataSheet = ss.getSheetByName(config.SHEETS.MAIN_DATA);
@@ -321,7 +330,7 @@ function getJoinedDataFromSheet(sheetId) {
     const rawDataRange = rawDataSheet.getDataRange();
     const rawData = getDataFromRange(rawDataRange);
     
-    console.log(`📊 原始資料表數據：${rawData.length} 筆`);
+    log(`📊 原始資料表數據：${rawData.length} 筆`);
     
     // 5. 檢查主鍵欄位是否存在於原始資料表
     const rawDataHeaders = rawDataRange.getValues()[0];
@@ -351,7 +360,7 @@ function getJoinedDataFromSheet(sheetId) {
       }
     });
     
-    console.log(`🔗 建立報到索引：${checkinMap.size} 個主鍵`);
+    log(`🔗 建立報到索引：${checkinMap.size} 個主鍵`);
     
     // 7. 關聯數據：為每個學生添加報到狀態
     const joinedStudents = rawData.map(student => {
@@ -368,7 +377,7 @@ function getJoinedDataFromSheet(sheetId) {
       };
     });
     
-    console.log(`✅ 數據關聯完成：${joinedStudents.length} 筆學生數據`);
+    log(`✅ 數據關聯完成：${joinedStudents.length} 筆學生數據`);
     
     // 8. 為checkinData和joinedStudents加上統一的idNumber欄位（優先使用UID欄位）
     const displayConfig = getDisplayConfigFromSheet(sheetId);
@@ -412,7 +421,7 @@ function getJoinedDataFromSheet(sheetId) {
       };
     });
     
-    console.log(`🆔 checkinData和students已加上idNumber欄位，UID欄位: ${uidFieldName || '使用主鍵值'}`);
+    log(`🆔 checkinData和students已加上idNumber欄位，UID欄位: ${uidFieldName || '使用主鍵值'}`);
     
     // 9. 資料關聯：用checkinLog的idNumber去關聯students，建立融合的checkinLog
     const studentsMap = new Map();
@@ -447,7 +456,7 @@ function getJoinedDataFromSheet(sheetId) {
       }
     });
     
-    console.log(`🔗 資料關聯完成: ${enrichedCheckinData.length} 筆融合的checkinLog`);
+    log(`🔗 資料關聯完成: ${enrichedCheckinData.length} 筆融合的checkinLog`);
     
     // 10. 安全處理：對敏感資料進行hash和遮罩
     const currentTimestamp = new Date().getTime().toString();
@@ -523,8 +532,8 @@ function getJoinedDataFromSheet(sheetId) {
       return bTime - aTime; // 降序排列（新的在前）
     });
     
-    console.log(`🔒 已對敏感資料進行安全處理：idNumber已hash，看板欄位已套用預處理規則（跳過Timestamp欄位）`);
-    console.log(`📅 checkinLog 已按時間戳反向排序：${sortedCheckinData.length} 筆記錄`);
+    log(`🔒 已對敏感資料進行安全處理：idNumber已hash，看板欄位已套用預處理規則（跳過Timestamp欄位）`);
+    log(`📅 checkinLog 已按時間戳反向排序：${sortedCheckinData.length} 筆記錄`);
     
     return {
       success: true,
@@ -573,7 +582,7 @@ function getDataFromRange(range, customHeaders = null) {
 
 function getDisplayConfigFromSheet(sheetId) {
   try {
-    console.log(`📋 获取表单 ${sheetId} 的显示配置`);
+    log(`📋 获取表单 ${sheetId} 的显示配置`);
     
     const ss = SpreadsheetApp.openById(sheetId);
     const configSheet = ss.getSheetByName(CONFIG.DISPLAY_CONFIG_SHEET_NAME);
@@ -598,7 +607,7 @@ function getDisplayConfigFromSheet(sheetId) {
     }
     
     const headers = values[0];
-    console.log(`📋 配置表头: ${headers.join(', ')}`);
+    log(`📋 配置表头: ${headers.join(', ')}`);
     
     const configRows = values.slice(1).map(row => {
       const config = {};
@@ -612,7 +621,7 @@ function getDisplayConfigFromSheet(sheetId) {
       return fieldName.trim();
     });
     
-    console.log(`📋 解析到 ${configRows.length} 个栏位配置`);
+    log(`📋 解析到 ${configRows.length} 个栏位配置`);
     
     // 简化验证：只检查是否有 UID 和 StudentTable
     let hasUID = false;
@@ -659,7 +668,7 @@ function getDisplayConfigFromSheet(sheetId) {
       return processed;
     });
     
-    console.log(`✅ 显示配置载入成功，${processedConfig.length} 个栏位配置`);
+    log(`✅ 显示配置载入成功，${processedConfig.length} 个栏位配置`);
     
     return {
       isValid: true,
@@ -685,7 +694,7 @@ function validateDisplayConfig(configRows) {
   const warnings = [];
   
   try {
-    console.log(`🔍 开始验证显示配置，共 ${configRows.length} 个栏位`);
+    log(`🔍 开始验证显示配置，共 ${configRows.length} 个栏位`);
     
     // 1. 检查 UID 配置
     const uidFields = configRows.filter(row => {
@@ -735,7 +744,7 @@ function validateDisplayConfig(configRows) {
       });
     }
     
-    console.log(`🔍 验证结果: UID字段 ${uidFields.length} 个, Timestamp字段 ${timestampFields.length} 个`);
+    log(`🔍 验证结果: UID字段 ${uidFields.length} 个, Timestamp字段 ${timestampFields.length} 个`);
     
     return { 
       errors, 
@@ -761,7 +770,7 @@ function validateDisplayConfig(configRows) {
  */
 function processDataWithConfig(studentsData, checkinData, displayConfig) {
   try {
-    console.log(`🔄 开始根据配置处理数据，已报到学生: ${studentsData.length} 笔`);
+    log(`🔄 开始根据配置处理数据，已报到学生: ${studentsData.length} 笔`);
     
     // 找到 UID 配置
     const uidConfig = displayConfig.find(config => {
@@ -788,9 +797,9 @@ function processDataWithConfig(studentsData, checkinData, displayConfig) {
     const uidFieldName = uidConfig['栏位名称'] || uidConfig['欄位名稱'] || '';
     const timestampFieldName = timestampConfig ? (timestampConfig['栏位名称'] || timestampConfig['欄位名稱']) : null;
     
-    console.log(`🆔 UID 字段: ${uidFieldName}`);
-    console.log(`⏰ Timestamp 字段: ${timestampFieldName || '无'}`);
-    console.log(`📅 DateTime 字段: ${datetimeConfigs.length} 个`);
+    log(`🆔 UID 字段: ${uidFieldName}`);
+    log(`⏰ Timestamp 字段: ${timestampFieldName || '无'}`);
+    log(`📅 DateTime 字段: ${datetimeConfigs.length} 个`);
     
     // 处理学生数据
     const processedStudents = studentsData.map(student => {
@@ -833,7 +842,7 @@ function processDataWithConfig(studentsData, checkinData, displayConfig) {
       return bTime - aTime; // 降序排列（新的在前）
     });
     
-    console.log(`✅ 数据处理完成：${sortedStudents.length} 笔已报到学生，已按时间戳排序`);
+    log(`✅ 数据处理完成：${sortedStudents.length} 笔已报到学生，已按时间戳排序`);
     
     return {
       students: sortedStudents,
@@ -1144,7 +1153,7 @@ function parseCheckinTime(checkinTime) {
  */
 function getDashboardData(sheetId = null) {
   try {
-    console.log(`📊 開始獲取儀表板數據，表單ID: ${sheetId || '預設'}`);
+    log(`📊 開始獲取儀表板數據，表單ID: ${sheetId || '預設'}`);
     
     // 如果沒有指定 sheetId，使用當前活動的表單
     if (!sheetId) {
@@ -1316,7 +1325,7 @@ function getStudentsDataFromSheet(sheetId) {
       throw new Error(joinedData.error);
     }
     
-    console.log(`👥 表單 ${sheetId} 關聯後學生數據: ${joinedData.students.length} 筆`);
+    log(`👥 表單 ${sheetId} 關聯後學生數據: ${joinedData.students.length} 筆`);
     
     return {
       data: joinedData.students,
@@ -1337,7 +1346,7 @@ function getCheckinStatusFromSheet(sheetId) {
   try {
     const joinedData = getJoinedDataFromSheet(sheetId);
     if (!joinedData.success) {
-      console.log(`⚠️ 表單 ${sheetId} 獲取報到數據失敗，返回空數據`);
+      log(`⚠️ 表單 ${sheetId} 獲取報到數據失敗，返回空數據`);
       return { 
         data: [], 
         headers: ['Timestamp', 'Account', '身分證統一編號'], 
@@ -1345,7 +1354,7 @@ function getCheckinStatusFromSheet(sheetId) {
       };
     }
     
-    console.log(`📋 表單 ${sheetId} 報到記錄: ${joinedData.checkinLog.length} 筆`);
+    log(`📋 表單 ${sheetId} 報到記錄: ${joinedData.checkinLog.length} 筆`);
     
     return {
       data: joinedData.checkinLog,
@@ -1382,7 +1391,7 @@ function getActivityStatus(sheetId = null) {
     const controlData = getControlSheetData();
     const currentTime = new Date().getTime();
     
-    console.log(`⏰ 檢查活動狀態，當前時間: ${new Date(currentTime).toLocaleString('zh-TW')}`);
+    log(`⏰ 檢查活動狀態，當前時間: ${new Date(currentTime).toLocaleString('zh-TW')}`);
     
     let activeEvent = null;
     let activityStatus = 'inactive';
@@ -1391,7 +1400,7 @@ function getActivityStatus(sheetId = null) {
     
     for (const event of controlData.events) {
       if (event.startTimestamp && event.endTimestamp) {
-        console.log(`📅 檢查活動: ${event.title}`);
+        log(`📅 檢查活動: ${event.title}`);
         
         if (currentTime < event.startTimestamp) {
           if (activityStatus === 'inactive') {
@@ -1417,7 +1426,7 @@ function getActivityStatus(sheetId = null) {
       }
     }
     
-    console.log(`🎯 活動狀態: ${activityStatus} - ${statusMessage}`);
+    log(`🎯 活動狀態: ${activityStatus} - ${statusMessage}`);
     
     return {
       success: true,
@@ -1477,7 +1486,7 @@ function getActivityStatusForSheet(sheetId) {
       }
     }
     
-    console.log(`🎯 表單 ${sheetId} 狀態: ${activityStatus} - ${statusMessage}`);
+    log(`🎯 表單 ${sheetId} 狀態: ${activityStatus} - ${statusMessage}`);
     
     return {
       success: true,
@@ -1528,13 +1537,13 @@ function testConnection() {
  */
 function validateAutoRefreshGem(gem) {
   try {
-    console.log(`🔄 驗證自動刷新密鑰，密鑰: ${gem ? '[有提供]' : '[未提供]'}`);
+    log(`🔄 驗證自動刷新密鑰，密鑰: ${gem ? '[有提供]' : '[未提供]'}`);
     
     const autorefreshGem = PropertiesService.getScriptProperties().getProperty('autorefreshGem');
     const refreshInterval = PropertiesService.getScriptProperties().getProperty('refreshInterval') || '30';
     
     if (!autorefreshGem) {
-      console.log('⚠️ autorefreshGem 未設定，自動刷新功能停用');
+      log('⚠️ autorefreshGem 未設定，自動刷新功能停用');
       return {
         success: true,
         enabled: false,
@@ -1545,7 +1554,7 @@ function validateAutoRefreshGem(gem) {
     }
     
     if (!gem) {
-      console.log('⚠️ 未提供密鑰，自動刷新功能停用');
+      log('⚠️ 未提供密鑰，自動刷新功能停用');
       return {
         success: true,
         enabled: false,
@@ -1559,7 +1568,7 @@ function validateAutoRefreshGem(gem) {
     const isValid = gem === autorefreshGem;
     
     if (isValid) {
-      console.log(`✅ 自動刷新密鑰驗證通過，間隔: ${refreshInterval}秒`);
+      log(`✅ 自動刷新密鑰驗證通過，間隔: ${refreshInterval}秒`);
       return {
         success: true,
         enabled: true,
@@ -1568,7 +1577,7 @@ function validateAutoRefreshGem(gem) {
         timestamp: new Date().toISOString()
       };
     } else {
-      console.log('❌ 自動刷新密鑰驗證失敗，密鑰不匹配');
+      log('❌ 自動刷新密鑰驗證失敗，密鑰不匹配');
       return {
         success: true,
         enabled: false,
@@ -1619,15 +1628,16 @@ function getControlSheetData() {
     const dataRows = values.slice(1);
     const events = [];
     
-    console.log(`📋 解析控制表，表頭: ${headers.join(', ')}`);
+    log(`📋 解析控制表，表頭: ${headers.join(', ')}`);
     
     dataRows.forEach((row, index) => {
-      if (row.length >= 8) {
+      if (row.length >= 9) {
         const sheetId = row[0];
         const title = row[1];
         const endTimestamp = parseTimestampValue(row[2]);
         const startTimestamp = parseTimestampValue(row[7]);
-        const noticeMD = row[8] ? row[8].toString().trim() : null;
+        const welcomeMD = row[8] ? row[8].toString().trim() : null;
+        const noticeMD = row[9] ? row[9].toString().trim() : null;
         
         if (sheetId && title) {
           const event = {
@@ -1635,6 +1645,7 @@ function getControlSheetData() {
             title: title.toString().trim(),
             startTimestamp: startTimestamp,
             endTimestamp: endTimestamp,
+            welcomeMD: welcomeMD,
             noticeMD: noticeMD,
             rowIndex: index + 2,
             isValid: !!(startTimestamp && endTimestamp)
@@ -1643,13 +1654,13 @@ function getControlSheetData() {
           events.push(event);
           
           if (noticeMD) {
-            console.log(`📝 表單 ${sheetId} 包含提醒內容: ${noticeMD.substring(0, 50)}${noticeMD.length > 50 ? '...' : ''}`);
+            log(`📝 表單 ${sheetId} 包含提醒內容: ${noticeMD.substring(0, 50)}${noticeMD.length > 50 ? '...' : ''}`);
           }
         }
       }
     });
     
-    console.log(`✅ 解析 ${events.length} 個活動`);
+    log(`✅ 解析 ${events.length} 個活動`);
     return { 
       events: events, 
       headers: headers, 
@@ -1697,14 +1708,14 @@ function parseTimestampValue(value) {
 function setupControlSheet() {
   const controlSheetId = '1yjrKov1eMgDkGqobzpe9YTNLrSLB0h_663fE65Atac4';
   PropertiesService.getScriptProperties().setProperty('controlSheet', controlSheetId);
-  console.log(`✅ 控制工作表 ID 已設定: ${controlSheetId}`);
+  log(`✅ 控制工作表 ID 已設定: ${controlSheetId}`);
   
   try {
     const testResult = getActivityStatus();
-    console.log('🧪 測試結果:', JSON.stringify(testResult, null, 2));
+    log('🧪 測試結果:', JSON.stringify(testResult, null, 2));
     
     const sheetsResult = getAvailableSheets();
-    console.log('📋 表單列表測試:', JSON.stringify(sheetsResult, null, 2));
+    log('📋 表單列表測試:', JSON.stringify(sheetsResult, null, 2));
     
     return { 
       success: true, 
@@ -1720,37 +1731,37 @@ function setupControlSheet() {
 
 function testFullSystem() {
   try {
-    console.log('🧪 開始完整系統測試...');
+    log('🧪 開始完整系統測試...');
     
     const controlTest = getControlSheetData();
-    console.log('📋 控制工作表測試通過');
+    log('📋 控制工作表測試通過');
     
     const sheetsTest = getAvailableSheets();
-    console.log('📋 表單列表測試通過');
+    log('📋 表單列表測試通過');
     
     const statusTest = getActivityStatus();
-    console.log('🎯 活動狀態測試通過');
+    log('🎯 活動狀態測試通過');
     
     // 測試配置驅動功能
     if (sheetsTest.sheets && sheetsTest.sheets.length > 0) {
       const firstSheetId = sheetsTest.sheets[0].id;
-      console.log(`📊 測試配置驅動功能，表單: ${firstSheetId}`);
+      log(`📊 測試配置驅動功能，表單: ${firstSheetId}`);
       
       const joinTest = getJoinedDataFromSheet(firstSheetId);
-      console.log('🔗 數據關聯測試:', joinTest.success ? '通過' : '失敗');
+      log('🔗 數據關聯測試:', joinTest.success ? '通過' : '失敗');
       
       if (joinTest.success) {
         const configTest = getDisplayConfigFromSheet(firstSheetId);
-        console.log('⚙️ 顯示配置測試:', configTest.isValid ? '通過' : '失敗');
+        log('⚙️ 顯示配置測試:', configTest.isValid ? '通過' : '失敗');
         
         if (configTest.isValid) {
           getDashboardData(firstSheetId);
-          console.log('📊 配置驅動儀表板測試通過');
+          log('📊 配置驅動儀表板測試通過');
         }
       }
     }
     
-    console.log('🎉 所有測試通過！');
+    log('🎉 所有測試通過！');
     return {
       success: true,
       version: '4.1.0',
@@ -1771,14 +1782,14 @@ function testFullSystem() {
  */
 function testDataJoin(sheetId) {
   try {
-    console.log(`🧪 測試數據關聯功能，表單: ${sheetId}`);
+    log(`🧪 測試數據關聯功能，表單: ${sheetId}`);
     
     // 測試數據關聯
     const joinTest = getJoinedDataFromSheet(sheetId);
-    console.log('🔗 數據關聯測試:', joinTest.success ? '✅ 通過' : '❌ 失敗');
+    log('🔗 數據關聯測試:', joinTest.success ? '✅ 通過' : '❌ 失敗');
     
     if (!joinTest.success) {
-      console.log('❌ 關聯錯誤:', joinTest.errors);
+      log('❌ 關聯錯誤:', joinTest.errors);
       return {
         success: false,
         error: 'DATA_JOIN_FAILED',
@@ -1786,12 +1797,12 @@ function testDataJoin(sheetId) {
       };
     }
     
-    console.log(`📈 關聯結果統計:`);
-    console.log(`   - 學生數據: ${joinTest.students.length} 筆`);
-    console.log(`   - 報到記錄: ${joinTest.checkinLog.length} 筆`);
-    console.log(`   - 主鍵欄位: ${joinTest.primaryKey}`);
-    console.log(`   - 程式寫入表欄位: ${joinTest.inputColumns.length} 個`);
-    console.log(`   - 原始資料表欄位: ${joinTest.rawDataHeaders.length} 個`);
+    log(`📈 關聯結果統計:`);
+    log(`   - 學生數據: ${joinTest.students.length} 筆`);
+    log(`   - 報到記錄: ${joinTest.checkinLog.length} 筆`);
+    log(`   - 主鍵欄位: ${joinTest.primaryKey}`);
+    log(`   - 程式寫入表欄位: ${joinTest.inputColumns.length} 個`);
+    log(`   - 原始資料表欄位: ${joinTest.rawDataHeaders.length} 個`);
     
     // 測試配置驅動處理
     const configTest = getDisplayConfigFromSheet(sheetId);
@@ -1802,9 +1813,9 @@ function testDataJoin(sheetId) {
         configTest.config
       );
       
-      console.log(`📊 配置處理結果:`);
-      console.log(`   - 處理後學生: ${processedData.students.length} 筆`);
-      console.log(`   - UID 欄位: ${processedData.uidField}`);
+      log(`📊 配置處理結果:`);
+      log(`   - 處理後學生: ${processedData.students.length} 筆`);
+      log(`   - UID 欄位: ${processedData.uidField}`);
     }
     
     return {
@@ -1833,7 +1844,7 @@ function testDataJoin(sheetId) {
  */
 function testPreprocessing() {
   try {
-    console.log('🧪 測試預處理規則功能');
+    log('🧪 測試預處理規則功能');
     
     const testCases = [
       {
@@ -1862,7 +1873,7 @@ function testPreprocessing() {
       const result = applyPreprocessing(testCase.value, testCase.rule);
       const passed = result === testCase.expected;
       
-      console.log(`${passed ? '✅' : '❌'} ${testCase.value} → ${result} (期望: ${testCase.expected})`);
+      log(`${passed ? '✅' : '❌'} ${testCase.value} → ${result} (期望: ${testCase.expected})`);
       
       return {
         input: testCase.value,
@@ -1874,7 +1885,7 @@ function testPreprocessing() {
     });
     
     const passedCount = results.filter(r => r.passed).length;
-    console.log(`📊 預處理測試結果: ${passedCount}/${results.length} 通過`);
+    log(`📊 預處理測試結果: ${passedCount}/${results.length} 通過`);
     
     return {
       success: passedCount === results.length,
@@ -1898,7 +1909,7 @@ function testPreprocessing() {
  */
 function testDateTimeProcessing() {
   try {
-    console.log('🧪 測試 datetime 處理功能');
+    log('🧪 測試 datetime 處理功能');
     
     const testCases = [
       {
@@ -1920,12 +1931,12 @@ function testDateTimeProcessing() {
     ];
     
     const results = testCases.map((testCase, index) => {
-      console.log(`🧪 測試案例 ${index + 1}: ${testCase.value} (${typeof testCase.value})`);
+      log(`🧪 測試案例 ${index + 1}: ${testCase.value} (${typeof testCase.value})`);
       
       const result = processDateTimeField(testCase.value, testCase.config);
       
-      console.log(`   顯示值: ${result.displayValue}`);
-      console.log(`   時間戳: ${result.timestamp} (${result.timestamp ? new Date(result.timestamp).toISOString() : '無'})`);
+      log(`   顯示值: ${result.displayValue}`);
+      log(`   時間戳: ${result.timestamp} (${result.timestamp ? new Date(result.timestamp).toISOString() : '無'})`);
       
       return {
         input: testCase.value,
@@ -1937,7 +1948,7 @@ function testDateTimeProcessing() {
     });
     
     const successCount = results.filter(r => r.hasTimestamp && r.hasDisplayValue).length;
-    console.log(`📊 datetime 處理測試結果: ${successCount}/${results.length} 成功`);
+    log(`📊 datetime 處理測試結果: ${successCount}/${results.length} 成功`);
     
     return {
       success: successCount === results.length,
@@ -1961,7 +1972,7 @@ function testDateTimeProcessing() {
  */
 function getCheckedInStudentsFromSheet(sheetId) {
   try {
-    console.log(`🔗 开始获取表单 ${sheetId} 的已报到学生数据`);
+    log(`🔗 开始获取表单 ${sheetId} 的已报到学生数据`);
     
     const config = getConfig();
     const ss = SpreadsheetApp.openById(sheetId);
@@ -2009,14 +2020,14 @@ function getCheckedInStudentsFromSheet(sheetId) {
       };
     }
     
-    console.log(`🔑 找到主键字段: ${primaryKeyField.name}，位于第 ${primaryKeyField.columnIndex} 列`);
+    log(`🔑 找到主键字段: ${primaryKeyField.name}，位于第 ${primaryKeyField.columnIndex} 列`);
     
     // 4. 读取程式写入表数据（第5行开始）
     const dataStartRow = 5;
     const totalRows = checkinSheet.getLastRow();
     
     if (totalRows < dataStartRow) {
-      console.log(`📊 程式写入表没有数据`);
+      log(`📊 程式写入表没有数据`);
       return {
         success: true,
         students: [],
@@ -2080,7 +2091,7 @@ function getCheckedInStudentsFromSheet(sheetId) {
       }
     });
     
-    console.log(`📊 程式写入表：${checkinLog.length} 笔报到记录，${checkedInMap.size} 个唯一主键`);
+    log(`📊 程式写入表：${checkinLog.length} 笔报到记录，${checkedInMap.size} 个唯一主键`);
     
     // 6. 读取原始资料表
     const rawDataSheet = ss.getSheetByName(config.SHEETS.MAIN_DATA);
@@ -2096,7 +2107,7 @@ function getCheckedInStudentsFromSheet(sheetId) {
     const rawDataValues = rawDataRange.getValues();
     const rawDataHeaders = rawDataValues[0];
     
-    console.log(`📊 原始资料表字段: ${rawDataHeaders.join(', ')}`);
+    log(`📊 原始资料表字段: ${rawDataHeaders.join(', ')}`);
     
     // 检查原始资料表是否有主键字段
     const primaryKeyColumnIndex = rawDataHeaders.indexOf(primaryKeyField.name);
@@ -2143,7 +2154,7 @@ function getCheckedInStudentsFromSheet(sheetId) {
       }
     }
     
-    console.log(`✅ LEFT JOIN 完成：${joinedStudents.length} 位已报到学生`);
+    log(`✅ LEFT JOIN 完成：${joinedStudents.length} 位已报到学生`);
     
     // 安全處理：對敏感資料進行hash和遮罩
     const currentTimestamp = new Date().getTime().toString();
@@ -2215,7 +2226,7 @@ function getCheckedInStudentsFromSheet(sheetId) {
       return safeRecord;
     });
     
-    console.log(`🔒 已對敏感資料進行安全處理：idNumber已hash，看板欄位已套用預處理規則（跳過Timestamp欄位）`);
+    log(`🔒 已對敏感資料進行安全處理：idNumber已hash，看板欄位已套用預處理規則（跳過Timestamp欄位）`);
     
     return {
       success: true,

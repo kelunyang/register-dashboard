@@ -560,6 +560,49 @@
           </div>
         </div>
 
+        <!-- 界面顯示設定 -->
+        <div class="settings-section">
+          <h3>👁️ 界面顯示設定</h3>
+          <div class="display-config">
+            <!-- 公告區塊顯示開關 -->
+            <div class="config-row">
+              <span class="config-label">公告區塊顯示:</span>
+              <div class="config-control">
+                <el-switch
+                  v-model="showNoticeSection"
+                  @change="handleNoticeDisplayChange"
+                  active-text="顯示"
+                  inactive-text="隱藏"
+                  active-color="#67C23A"
+                  inactive-color="#DCDFE6"
+                />
+              </div>
+            </div>
+            
+            <!-- StudentTable 分頁大小設定 -->
+            <div class="config-row">
+              <span class="config-label">每頁顯示學生數:</span>
+              <span class="config-value">{{ tablePageSize }}位</span>
+            </div>
+            
+            <div class="config-row">
+              <span class="config-label">調整範圍:</span>
+              <div class="page-size-slider-container">
+                <el-slider
+                  v-model="tablePageSize"
+                  :min="5"
+                  :max="50"
+                  :step="5"
+                  :marks="pageSizeMarks"
+                  :format-tooltip="formatPageSizeTooltip"
+                  @change="handlePageSizeChange"
+                  show-tooltip
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 數據備份 -->
         <div class="settings-section">
           <h3>📦 數據備份</h3>
@@ -928,6 +971,10 @@ const typingSpeedSetting = ref(50)
 // 打字機顏色設定相關
 const normalFieldCompleteColor = ref('#00ff7f')
 const normalFieldShadowColor = ref('rgba(0, 255, 127, 0.5)')
+
+// 界面顯示設定相關
+const showNoticeSection = ref(true)
+const tablePageSize = ref(10)
 const timeFieldCompleteColor = ref('#00d4ff')
 const timeFieldShadowColor = ref('rgba(0, 212, 255, 0.5)')
 
@@ -1016,6 +1063,18 @@ const typingSpeedMarks = computed(() => ({
   150: '超慢'
 }))
 
+// 分頁大小相關計算屬性
+const pageSizeMarks = computed(() => ({
+  5: '5',
+  10: '10',
+  15: '15',
+  20: '20',
+  25: '25',
+  30: '30',
+  40: '40',
+  50: '50'
+}))
+
 const formatIntervalTooltip = (value) => {
   if (value < 60) {
     return `${value}秒`
@@ -1034,14 +1093,18 @@ const formatCountdownTooltip = (value) => {
   return `${value}秒`
 }
 
+const formatPageSizeTooltip = (value) => {
+  return `${value}位學生`
+}
+
 // markdown 內容處理
 const noticeMarkdownHtml = computed(() => {
-  if (!props.activityStatus.currentEvent?.noticeMD) {
+  if (!props.activityStatus.currentEvent?.welcomeMD) {
     return null
   }
   
   try {
-    return markdownService.noticeMarkdownToHtml(props.activityStatus.currentEvent.noticeMD)
+    return markdownService.noticeMarkdownToHtml(props.activityStatus.currentEvent.welcomeMD)
   } catch (error) {
     console.error('Markdown 處理錯誤:', error)
     return null
@@ -1433,6 +1496,32 @@ const onTimeFieldShadowColorChange = (color) => {
   console.log(`🎨 時間欄位陰影顏色已更新為: ${color}`)
 }
 
+// 界面顯示設定相關方法
+const handleNoticeDisplayChange = (value) => {
+  // 保存到 localStorage
+  localStorage.setItem('showNoticeSection', value.toString())
+  
+  // 觸發自定義事件通知 StudentDashboard
+  window.dispatchEvent(new CustomEvent('noticeSectionDisplayChange', {
+    detail: { show: value }
+  }))
+  
+  console.log(`👁️ 公告區塊顯示已更新為: ${value ? '顯示' : '隱藏'}`)
+}
+
+const handlePageSizeChange = (value) => {
+  // 保存到 localStorage
+  localStorage.setItem('tablePageSize', value.toString())
+  
+  // 觸發自定義事件通知 StudentTable
+  window.dispatchEvent(new CustomEvent('tablePagesizeChange', {
+    detail: { pageSize: value }
+  }))
+  
+  console.log(`📋 每頁顯示學生數已更新為: ${value}位`)
+}
+
+
 const resetColorsToDefault = () => {
   // 重置為預設值
   normalFieldCompleteColor.value = '#00ff7f'
@@ -1516,6 +1605,17 @@ onMounted(() => {
     document.documentElement.style.setProperty('--time-field-shadow-color', savedTimeShadow)
   } else {
     document.documentElement.style.setProperty('--time-field-shadow-color', 'rgba(0, 212, 255, 0.5)')
+  }
+  
+  // 載入已保存的界面顯示設定
+  const savedShowNoticeSection = localStorage.getItem('showNoticeSection')
+  if (savedShowNoticeSection !== null) {
+    showNoticeSection.value = savedShowNoticeSection === 'true'
+  }
+  
+  const savedTablePageSize = localStorage.getItem('tablePageSize')
+  if (savedTablePageSize) {
+    tablePageSize.value = parseInt(savedTablePageSize)
   }
   
   // 每秒更新時間和倒數計時
@@ -2865,6 +2965,13 @@ onUnmounted(() => {
 }
 
 .countdown-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.page-size-slider-container {
   display: flex;
   align-items: center;
   gap: 12px;
