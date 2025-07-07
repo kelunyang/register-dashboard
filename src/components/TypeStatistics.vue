@@ -244,7 +244,7 @@ const clearFilter = () => {
 .card-header h4 {
   color: #ffffff;
   margin: 0;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: bold;
 }
 
@@ -257,7 +257,7 @@ const clearFilter = () => {
   color: #409eff !important;
   padding: 4px 8px !important;
   height: auto !important;
-  font-size: 12px !important;
+  font-size: calc(var(--base-font-size) * 0.75) !important;
 }
 
 .type-stats-container {
@@ -325,7 +325,7 @@ const clearFilter = () => {
 
 .stat-label {
   color: #00ff7f;
-  font-size: 11px;
+  font-size: calc(var(--base-font-size) * 0.6875);
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -338,7 +338,7 @@ const clearFilter = () => {
 
 .stat-numbers {
   color: #ffffff;
-  font-size: 10px;
+  font-size: calc(var(--base-font-size) * 0.625);
   font-weight: bold;
   letter-spacing: 0.5px;
 }
@@ -501,7 +501,7 @@ const clearFilter = () => {
   color: #409eff !important;
   padding: 2px 6px !important;
   height: auto !important;
-  font-size: 12px !important;
+  font-size: calc(var(--base-font-size) * 0.75) !important;
 }
 
 .no-data {
@@ -519,7 +519,7 @@ const clearFilter = () => {
   top: 4px;
   right: 6px;
   color: var(--stat-label-color, #00ff7f);
-  font-size: 8px;
+  font-size: calc(var(--base-font-size) * 0.5);
   opacity: 0;
   transition: opacity 0.3s ease;
   font-family: 'Courier New', monospace;
@@ -560,11 +560,11 @@ const clearFilter = () => {
   }
   
   .stat-label {
-    font-size: 10px;
+    font-size: calc(var(--base-font-size) * 0.625);
   }
   
   .stat-numbers {
-    font-size: 9px;
+    font-size: calc(var(--base-font-size) * 0.5625);
   }
   
   .ibm-progress-bar {
@@ -572,7 +572,7 @@ const clearFilter = () => {
   }
   
   .ibm-stat-item::after {
-    font-size: 7px;
+    font-size: calc(var(--base-font-size) * 0.4375);
     top: 3px;
     right: 4px;
   }

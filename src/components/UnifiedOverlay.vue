@@ -9,7 +9,7 @@
     <div class="overlay-backdrop" @click="handleBackdropClick"></div>
     
     <!-- 主要彈窗 -->
-    <div class="overlay-modal" :class="`mode-${currentMode}`">
+    <div class="overlay-modal">
       <!-- 關閉按鈕 -->
       <button 
         class="close-button" 
@@ -20,37 +20,23 @@
         <el-icon size="20"><Close /></el-icon>
       </button>
       
-      <!-- 模式切換器（只在非活動狀態模式顯示） -->
-      <div v-if="currentMode !== 'activity'" class="mode-switcher">
-        <el-button 
-          :type="currentMode === 'settings' ? 'primary' : 'default'"
-          @click="switchMode('settings')"
-          size="large"
-        >
-          <el-icon><Setting /></el-icon>
-          系統設定
-        </el-button>
-        <el-button 
-          :type="currentMode === 'config' ? 'primary' : 'default'"
-          @click="switchMode('config')"
-          size="large"
-          :loading="loadingConfigDetails"
-        >
-          <el-icon><InfoFilled /></el-icon>
-          看板配置
-        </el-button>
-        <el-button 
-          :type="currentMode === 'activity' ? 'primary' : 'default'"
-          @click="switchMode('activity')"
-          size="large"
-        >
-          <el-icon><Monitor /></el-icon>
-          活動狀態
-        </el-button>
+      <!-- 頁面標題 -->
+      <div class="modal-header">
+        <h2 class="modal-title">系統控制台</h2>
       </div>
-
-      <!-- 活動狀態模式 -->
-      <div v-if="currentMode === 'activity'" class="activity-content">
+      
+      <!-- Tabs 導航和內容 -->
+      <el-tabs v-model="currentMode" @tab-change="handleTabChange" class="overlay-tabs">
+        <!-- 活動狀態 Tab -->
+        <el-tab-pane name="activity">
+          <template #label>
+            <div class="tab-label">
+              <el-icon><Monitor /></el-icon>
+              <span>活動狀態</span>
+            </div>
+          </template>
+          
+          <div class="tab-pane activity-pane">
         <!-- 狀態圖示 -->
         <div class="status-icon">
           <div v-if="activityStatus.status === 'pending'" class="icon pending-icon">⏳</div>
@@ -207,10 +193,19 @@
           <span class="time-label">現在時間：</span>
           <span class="time-display">{{ currentTimeDisplay }}</span>
         </div>
-      </div>
+          </div>
+        </el-tab-pane>
 
-      <!-- 系統設定模式 -->
-      <div v-if="currentMode === 'settings'" class="settings-content">
+        <!-- 系統設定 Tab -->
+        <el-tab-pane name="settings">
+          <template #label>
+            <div class="tab-label">
+              <el-icon><Setting /></el-icon>
+              <span>系統設定</span>
+            </div>
+          </template>
+          
+          <div class="tab-pane settings-pane">
         <h2 class="content-title">🛠️ 系統設定</h2>
         
         <!-- 顯示配置資訊 -->
@@ -372,6 +367,199 @@
           </div>
         </div>
 
+        <!-- 字體大小設定 -->
+        <div class="settings-section">
+          <h3>🔤 字體大小設定</h3>
+          <div class="font-size-config">
+            <div class="config-row">
+              <span class="config-label">當前大小:</span>
+              <span class="config-value">{{ fontSize }}px</span>
+            </div>
+            
+            <div class="config-row">
+              <span class="config-label">調整範圍:</span>
+              <div class="font-size-slider-container">
+                <el-slider
+                  v-model="fontSize"
+                  :min="12"
+                  :max="32"
+                  :step="1"
+                  :marks="fontSizeMarks"
+                  :show-tooltip="true"
+                  :format-tooltip="formatFontSizeTooltip"
+                  @change="onFontSizeChange"
+                  style="width: 200px;"
+                />
+                <span class="font-size-display">{{ fontSize }}px</span>
+              </div>
+            </div>
+            
+            <div class="font-size-preview">
+              <div class="preview-text">預覽文字 - 這是調整後的字體大小效果</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 換頁倒數計時設定 -->
+        <div class="settings-section">
+          <h3>⏰ 換頁倒數計時設定</h3>
+          <div class="countdown-config">
+            <div class="config-row">
+              <span class="config-label">當前間隔:</span>
+              <span class="config-value">{{ autoPlayIntervalSetting }}秒</span>
+            </div>
+            
+            <div class="config-row">
+              <span class="config-label">調整範圍:</span>
+              <div class="countdown-slider-container">
+                <el-slider
+                  v-model="autoPlayIntervalSetting"
+                  :min="3"
+                  :max="30"
+                  :step="1"
+                  :marks="countdownMarks"
+                  :show-tooltip="true"
+                  :format-tooltip="formatCountdownTooltip"
+                  @change="onAutoPlayIntervalSettingChange"
+                  style="width: 200px;"
+                />
+                <span class="countdown-display">{{ autoPlayIntervalSetting }}秒</span>
+              </div>
+            </div>
+            
+            <div class="countdown-preview">
+              <div class="preview-text">設定科幻表格的自動換頁間隔時間</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 打字機速度設定 -->
+        <div class="settings-section">
+          <h3>⚡ 打字機速度設定</h3>
+          <div class="typing-speed-config">
+            <div class="config-row">
+              <span class="config-label">當前速度:</span>
+              <span class="config-value">{{ getTypingSpeedLabel(typingSpeedSetting) }}</span>
+            </div>
+            
+            <div class="config-row">
+              <span class="config-label">調整範圍:</span>
+              <div class="typing-speed-slider-container">
+                <el-slider
+                  v-model="typingSpeedSetting"
+                  :min="10"
+                  :max="150"
+                  :step="10"
+                  :marks="typingSpeedMarks"
+                  :show-tooltip="true"
+                  :format-tooltip="formatTypingSpeedTooltip"
+                  @change="onTypingSpeedSettingChange"
+                  style="width: 200px;"
+                />
+                <span class="typing-speed-display">{{ typingSpeedSetting }}ms</span>
+              </div>
+            </div>
+            
+            <div class="typing-speed-preview">
+              <div class="preview-text">設定科幻表格的打字動畫速度</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 打字機顏色設定 -->
+        <div class="settings-section">
+          <h3>🎨 打字機顏色設定</h3>
+          <div class="color-config">
+            <!-- 一般欄位完成顏色 -->
+            <div class="color-group">
+              <h4>📝 一般欄位完成顏色</h4>
+              <div class="config-row">
+                <span class="config-label">文字顏色:</span>
+                <div class="color-picker-container">
+                  <el-color-picker 
+                    v-model="normalFieldCompleteColor"
+                    @change="onNormalFieldColorChange"
+                    show-alpha
+                    size="large"
+                  />
+                  <span class="color-value">{{ normalFieldCompleteColor }}</span>
+                </div>
+              </div>
+              <div class="config-row">
+                <span class="config-label">陰影顏色:</span>
+                <div class="color-picker-container">
+                  <el-color-picker 
+                    v-model="normalFieldShadowColor"
+                    @change="onNormalFieldShadowColorChange"
+                    show-alpha
+                    size="large"
+                  />
+                  <span class="color-value">{{ normalFieldShadowColor }}</span>
+                </div>
+              </div>
+              <div class="color-preview">
+                <span 
+                  class="preview-text" 
+                  :style="{ 
+                    color: normalFieldCompleteColor, 
+                    textShadow: `0 0 5px ${normalFieldShadowColor}` 
+                  }"
+                >
+                  學生姓名 預覽效果
+                </span>
+              </div>
+            </div>
+
+            <!-- 時間欄位完成顏色 -->
+            <div class="color-group">
+              <h4>⏰ 時間欄位完成顏色</h4>
+              <div class="config-row">
+                <span class="config-label">文字顏色:</span>
+                <div class="color-picker-container">
+                  <el-color-picker 
+                    v-model="timeFieldCompleteColor"
+                    @change="onTimeFieldColorChange"
+                    show-alpha
+                    size="large"
+                  />
+                  <span class="color-value">{{ timeFieldCompleteColor }}</span>
+                </div>
+              </div>
+              <div class="config-row">
+                <span class="config-label">陰影顏色:</span>
+                <div class="color-picker-container">
+                  <el-color-picker 
+                    v-model="timeFieldShadowColor"
+                    @change="onTimeFieldShadowColorChange"
+                    show-alpha
+                    size="large"
+                  />
+                  <span class="color-value">{{ timeFieldShadowColor }}</span>
+                </div>
+              </div>
+              <div class="color-preview">
+                <span 
+                  class="preview-text time-field-preview" 
+                  :style="{ 
+                    color: timeFieldCompleteColor, 
+                    textShadow: `0 0 5px ${timeFieldShadowColor}`,
+                    fontWeight: 'bold'
+                  }"
+                >
+                  2024/12/07 14:30 預覽效果
+                </span>
+              </div>
+            </div>
+
+            <div class="color-reset">
+              <el-button @click="resetColorsToDefault" type="default" size="large">
+                <el-icon><Refresh /></el-icon>
+                重置為預設顏色
+              </el-button>
+            </div>
+          </div>
+        </div>
+
         <!-- 數據備份 -->
         <div class="settings-section">
           <h3>📦 數據備份</h3>
@@ -395,10 +583,19 @@
             </el-upload>
           </div>
         </div>
-      </div>
-      
-      <!-- 看板配置模式 -->
-      <div v-if="currentMode === 'config'" class="config-content">
+          </div>
+        </el-tab-pane>
+        
+        <!-- 看板配置 Tab -->
+        <el-tab-pane name="config">
+          <template #label>
+            <div class="tab-label">
+              <el-icon><InfoFilled /></el-icon>
+              <span>看板配置</span>
+            </div>
+          </template>
+          
+          <div class="tab-pane config-pane">
         <h2 class="content-title">📋 看板配置詳情</h2>
         
         <div v-if="loadingConfigDetails" class="loading-config">
@@ -434,11 +631,11 @@
                 <span class="value highlight">{{ configDetails.dataSource.primaryKey }}</span>
               </div>
               <div class="info-item">
-                <span class="label">學生總數:</span>
+                <span class="label">應報到總數:</span>
                 <span class="value">{{ configDetails.dataSource.studentsCount }} 筆</span>
               </div>
               <div class="info-item">
-                <span class="label">報到記錄:</span>
+                <span class="label">已報到記錄:</span>
                 <span class="value">{{ configDetails.dataSource.checkinCount }} 筆</span>
               </div>
               <div class="info-item">
@@ -544,7 +741,9 @@
             </el-button>
           </el-empty>
         </div>
-      </div>
+        </div>
+        </el-tab-pane>
+      </el-tabs>
       
       <!-- 操作按鈕 -->
       <div class="action-buttons">
@@ -633,7 +832,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { 
   Close, Refresh, RefreshRight, View, Setting, InfoFilled, Monitor,
-  Delete, DocumentDelete, Download, Upload, Warning, Hide
+  Delete, DocumentDelete, Download, Upload, Warning
 } from '@element-plus/icons-vue'
 import markdownService from '../services/markdownService.js'
 import apiService from '../services/apiService.js'
@@ -692,7 +891,7 @@ const emit = defineEmits([
   'close', 'refresh', 'mode-change',
   'load-config-details', 'clear-ui-settings', 'clear-current-sheet-history', 
   'clear-all-data', 'export-data', 'import-data', 'config-debug-change',
-  'auto-refresh-interval-change'
+  'auto-refresh-interval-change', 'auto-play-interval-change'
 ])
 
 // 響應式數據
@@ -716,6 +915,21 @@ const autoRefreshInterval = ref(30)
 const autoRefreshEnabled = computed(() => {
   return apiService.hasAutoRefresh
 })
+
+// 字體大小相關
+const fontSize = ref(16)
+
+// 換頁倒數計時相關
+const autoPlayIntervalSetting = ref(10)
+
+// 打字機速度相關
+const typingSpeedSetting = ref(50)
+
+// 打字機顏色設定相關
+const normalFieldCompleteColor = ref('#00ff7f')
+const normalFieldShadowColor = ref('rgba(0, 255, 127, 0.5)')
+const timeFieldCompleteColor = ref('#00d4ff')
+const timeFieldShadowColor = ref('rgba(0, 212, 255, 0.5)')
 
 // 監聽 props.mode 變化
 watch(() => props.mode, (newMode) => {
@@ -771,6 +985,37 @@ const intervalMarks = computed(() => ({
   180: '3m'
 }))
 
+// 字體大小相關計算屬性
+const fontSizeMarks = computed(() => ({
+  12: '12',
+  14: '14',
+  16: '16',
+  18: '18',
+  20: '20',
+  22: '22',
+  24: '24'
+}))
+
+// 換頁倒數計時相關計算屬性
+const countdownMarks = computed(() => ({
+  3: '3s',
+  5: '5s',
+  10: '10s',
+  15: '15s',
+  20: '20s',
+  25: '25s',
+  30: '30s'
+}))
+
+// 打字機速度相關計算屬性
+const typingSpeedMarks = computed(() => ({
+  10: '極速',
+  25: '快速',
+  50: '中速',
+  100: '慢速',
+  150: '超慢'
+}))
+
 const formatIntervalTooltip = (value) => {
   if (value < 60) {
     return `${value}秒`
@@ -779,6 +1024,14 @@ const formatIntervalTooltip = (value) => {
     const seconds = value % 60
     return seconds > 0 ? `${minutes}分${seconds}秒` : `${minutes}分鐘`
   }
+}
+
+const formatFontSizeTooltip = (value) => {
+  return `${value}px`
+}
+
+const formatCountdownTooltip = (value) => {
+  return `${value}秒`
 }
 
 // markdown 內容處理
@@ -796,7 +1049,7 @@ const noticeMarkdownHtml = computed(() => {
 })
 
 // 方法
-const switchMode = (mode) => {
+const handleTabChange = (mode) => {
   currentMode.value = mode
   emit('mode-change', mode)
   
@@ -1092,6 +1345,110 @@ const onIntervalChange = (value) => {
   emit('auto-refresh-interval-change', value)
 }
 
+// 字體大小相關方法
+const onFontSizeChange = (value) => {
+  // 更新 CSS 變數
+  document.documentElement.style.setProperty('--base-font-size', `${value}px`)
+  
+  // 保存到 localStorage
+  localStorage.setItem('fontSize', value.toString())
+  
+  console.log(`🔤 字體大小已更新為: ${value}px`)
+}
+
+// 換頁倒數計時相關方法
+const onAutoPlayIntervalSettingChange = (value) => {
+  // 保存到 localStorage
+  localStorage.setItem('autoPlayInterval', value.toString())
+  
+  // 通知父組件更新倒數計時間隔
+  emit('auto-play-interval-change', value)
+  
+  console.log(`⏰ 換頁倒數計時已更新為: ${value}秒`)
+}
+
+// 打字機速度相關方法
+const formatTypingSpeedTooltip = (value) => {
+  return `${value}ms - ${getTypingSpeedLabel(value)}`
+}
+
+const getTypingSpeedLabel = (value) => {
+  if (value <= 10) return '極速'
+  if (value <= 25) return '快速'
+  if (value <= 50) return '中速'
+  if (value <= 100) return '慢速'
+  return '超慢'
+}
+
+const onTypingSpeedSettingChange = (value) => {
+  // 保存到 localStorage
+  localStorage.setItem('typingSpeed', value.toString())
+  
+  // 觸發自定義事件通知其他組件
+  window.dispatchEvent(new CustomEvent('typingSpeedChange', {
+    detail: { speed: value }
+  }))
+  
+  console.log(`⚡ 打字機速度已更新為: ${value}ms (${getTypingSpeedLabel(value)})`)
+}
+
+// 打字機顏色相關方法
+const onNormalFieldColorChange = (color) => {
+  // 保存到 localStorage
+  localStorage.setItem('normalFieldCompleteColor', color)
+  
+  // 更新 CSS 變數
+  document.documentElement.style.setProperty('--normal-field-complete-color', color)
+  
+  console.log(`🎨 一般欄位完成顏色已更新為: ${color}`)
+}
+
+const onNormalFieldShadowColorChange = (color) => {
+  // 保存到 localStorage
+  localStorage.setItem('normalFieldShadowColor', color)
+  
+  // 更新 CSS 變數
+  document.documentElement.style.setProperty('--normal-field-shadow-color', color)
+  
+  console.log(`🎨 一般欄位陰影顏色已更新為: ${color}`)
+}
+
+const onTimeFieldColorChange = (color) => {
+  // 保存到 localStorage
+  localStorage.setItem('timeFieldCompleteColor', color)
+  
+  // 更新 CSS 變數
+  document.documentElement.style.setProperty('--time-field-complete-color', color)
+  
+  console.log(`🎨 時間欄位完成顏色已更新為: ${color}`)
+}
+
+const onTimeFieldShadowColorChange = (color) => {
+  // 保存到 localStorage
+  localStorage.setItem('timeFieldShadowColor', color)
+  
+  // 更新 CSS 變數
+  document.documentElement.style.setProperty('--time-field-shadow-color', color)
+  
+  console.log(`🎨 時間欄位陰影顏色已更新為: ${color}`)
+}
+
+const resetColorsToDefault = () => {
+  // 重置為預設值
+  normalFieldCompleteColor.value = '#00ff7f'
+  normalFieldShadowColor.value = 'rgba(0, 255, 127, 0.5)'
+  timeFieldCompleteColor.value = '#00d4ff'
+  timeFieldShadowColor.value = 'rgba(0, 212, 255, 0.5)'
+  
+  // 觸發變更事件
+  onNormalFieldColorChange('#00ff7f')
+  onNormalFieldShadowColorChange('rgba(0, 255, 127, 0.5)')
+  onTimeFieldColorChange('#00d4ff')
+  onTimeFieldShadowColorChange('rgba(0, 212, 255, 0.5)')
+  
+  ElMessage.success('顏色已重置為預設值')
+}
+
 const getBlockDisplayName = (blockName) => {
   const names = {
     'StudentTable': '📋 學生列表',
@@ -1105,6 +1462,61 @@ const getBlockDisplayName = (blockName) => {
 onMounted(() => {
   updateCurrentTime()
   updateCountdown()
+  
+  // 載入已保存的字體大小
+  const savedFontSize = localStorage.getItem('fontSize')
+  if (savedFontSize) {
+    fontSize.value = parseInt(savedFontSize)
+    document.documentElement.style.setProperty('--base-font-size', `${fontSize.value}px`)
+  } else {
+    // 設定預設字體大小
+    document.documentElement.style.setProperty('--base-font-size', '16px')
+  }
+  
+  // 載入已保存的換頁倒數計時間隔
+  const savedAutoPlayInterval = localStorage.getItem('autoPlayInterval')
+  if (savedAutoPlayInterval) {
+    autoPlayIntervalSetting.value = parseInt(savedAutoPlayInterval)
+  }
+  
+  // 載入已保存的打字機速度
+  const savedTypingSpeed = localStorage.getItem('typingSpeed')
+  if (savedTypingSpeed) {
+    typingSpeedSetting.value = parseInt(savedTypingSpeed)
+  }
+  
+  // 載入已保存的顏色設定
+  const savedNormalColor = localStorage.getItem('normalFieldCompleteColor')
+  if (savedNormalColor) {
+    normalFieldCompleteColor.value = savedNormalColor
+    document.documentElement.style.setProperty('--normal-field-complete-color', savedNormalColor)
+  } else {
+    document.documentElement.style.setProperty('--normal-field-complete-color', '#00ff7f')
+  }
+  
+  const savedNormalShadow = localStorage.getItem('normalFieldShadowColor')
+  if (savedNormalShadow) {
+    normalFieldShadowColor.value = savedNormalShadow
+    document.documentElement.style.setProperty('--normal-field-shadow-color', savedNormalShadow)
+  } else {
+    document.documentElement.style.setProperty('--normal-field-shadow-color', 'rgba(0, 255, 127, 0.5)')
+  }
+  
+  const savedTimeColor = localStorage.getItem('timeFieldCompleteColor')
+  if (savedTimeColor) {
+    timeFieldCompleteColor.value = savedTimeColor
+    document.documentElement.style.setProperty('--time-field-complete-color', savedTimeColor)
+  } else {
+    document.documentElement.style.setProperty('--time-field-complete-color', '#00d4ff')
+  }
+  
+  const savedTimeShadow = localStorage.getItem('timeFieldShadowColor')
+  if (savedTimeShadow) {
+    timeFieldShadowColor.value = savedTimeShadow
+    document.documentElement.style.setProperty('--time-field-shadow-color', savedTimeShadow)
+  } else {
+    document.documentElement.style.setProperty('--time-field-shadow-color', 'rgba(0, 212, 255, 0.5)')
+  }
   
   // 每秒更新時間和倒數計時
   timeUpdateTimer = setInterval(() => {
@@ -1127,7 +1539,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9999;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1154,24 +1566,56 @@ onUnmounted(() => {
   position: relative;
   background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
   border-radius: 16px;
-  padding: 30px;
+  padding: 0;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   border: 2px solid #4a4a4a;
-  max-width: 900px;
+  max-width: 1000px;
   width: 90vw;
   max-height: 85vh;
-  overflow-y: auto;
+  overflow: hidden;
   text-align: center;
   animation: modalSlideIn 0.4s ease-out;
-  /* 修正：防止橫向滾動條 */
-  overflow-x: hidden;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 狀態特定樣式 */
-.mode-activity.overlay-modal {
-  border-color: #409eff;
-  box-shadow: 0 20px 60px rgba(64, 158, 255, 0.2);
+/* 彈窗頭部 */
+.modal-header {
+  padding: 20px 30px 0 30px;
+  background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
+  border-bottom: 1px solid #4a4a4a;
+}
+
+.modal-title {
+  color: #ffffff;
+  font-size: calc(var(--base-font-size) * 1.5);
+  font-weight: bold;
+  margin: 0 0 20px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Tabs 樣式 */
+.overlay-tabs {
+  flex-shrink: 0;
+  margin: 0;
+  background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
+}
+
+.tab-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: calc(var(--base-font-size) * 0.875);
+  font-weight: 500;
+}
+
+/* Tab 內容區域 */
+.tab-pane {
+  padding: 30px;
+  max-height: 60vh;
+  overflow-y: auto;
+  text-align: left;
 }
 
 @keyframes modalSlideIn {
@@ -1187,8 +1631,8 @@ onUnmounted(() => {
 
 .close-button {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 20px;
+  right: 20px;
   background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 50%;
@@ -1200,6 +1644,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  z-index: 10;
 }
 
 .close-button:hover {
@@ -1208,28 +1653,21 @@ onUnmounted(() => {
   transform: scale(1.1);
 }
 
-.mode-switcher {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-bottom: 30px;
-  flex-wrap: wrap;
-}
 
 .content-title {
   color: #ffffff;
-  font-size: 24px;
+  font-size: calc(var(--base-font-size) * 1.5);
   font-weight: bold;
   margin: 0 0 25px 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* 活動狀態樣式 */
-.activity-content {
+.activity-pane {
   text-align: center;
-  /* 修正：確保內容不會超出容器 */
-  max-width: 100%;
-  word-wrap: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .status-icon {
@@ -1237,7 +1675,7 @@ onUnmounted(() => {
 }
 
 .icon {
-  font-size: 48px;
+  font-size: calc(var(--base-font-size) * 3.0);
   display: block;
   margin: 0 auto;
   animation: iconPulse 2s ease-in-out infinite;
@@ -1272,7 +1710,7 @@ onUnmounted(() => {
 
 .status-title {
   color: #ffffff;
-  font-size: 24px;
+  font-size: calc(var(--base-font-size) * 1.5);
   font-weight: bold;
   margin: 0 0 15px 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -1282,7 +1720,7 @@ onUnmounted(() => {
 
 .status-message {
   color: #cccccc;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   line-height: 1.5;
   margin: 0 0 25px 0;
   /* 修正：確保訊息文字換行 */
@@ -1308,7 +1746,7 @@ onUnmounted(() => {
 }
 
 .notice-icon {
-  font-size: 32px;
+  font-size: calc(var(--base-font-size) * 2.0);
   flex-shrink: 0;
   margin-top: 5px;
 }
@@ -1321,7 +1759,7 @@ onUnmounted(() => {
 .notice-content h4 {
   color: #F56C6C;
   margin: 0 0 10px 0;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   font-weight: bold;
 }
 
@@ -1329,13 +1767,13 @@ onUnmounted(() => {
   color: #ffffff;
   margin: 0 0 15px 0;
   line-height: 1.5;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   word-wrap: break-word;
 }
 
 .notice-hint {
   color: #cccccc;
-  font-size: 13px;
+  font-size: calc(var(--base-font-size) * 0.8125);
   font-style: italic;
 }
 
@@ -1364,7 +1802,7 @@ onUnmounted(() => {
 .error-title {
   color: #F56C6C;
   margin: 0 0 10px 0;
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   font-weight: bold;
 }
 
@@ -1372,7 +1810,7 @@ onUnmounted(() => {
   color: #ffffff;
   margin: 0 0 15px 0;
   line-height: 1.5;
-  font-size: 15px;
+  font-size: calc(var(--base-font-size) * 0.9375);
   word-wrap: break-word;
 }
 
@@ -1383,7 +1821,7 @@ onUnmounted(() => {
 .error-field {
   margin: 8px 0;
   color: #ffffff;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   word-wrap: break-word;
 }
 
@@ -1395,7 +1833,7 @@ onUnmounted(() => {
   color: #409eff;
   cursor: pointer;
   margin: 10px 0;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: 500;
 }
 
@@ -1451,13 +1889,13 @@ onUnmounted(() => {
 
 .info-label {
   color: #999999;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   flex-shrink: 0;
 }
 
 .info-value {
   color: #ffffff;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: 500;
   text-align: right;
   /* 修正：允許文字換行 */
@@ -1471,7 +1909,7 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.1);
   padding: 4px 8px;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: calc(var(--base-font-size) * 0.8125);
 }
 
 .highlight-time {
@@ -1499,11 +1937,11 @@ onUnmounted(() => {
 
 .countdown-label {
   color: #cccccc;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
 }
 
 .countdown-timer {
-  font-size: 20px;
+  font-size: calc(var(--base-font-size) * 1.25);
   font-weight: bold;
   color: #E6A23C;
   font-family: 'Courier New', monospace;
@@ -1524,7 +1962,7 @@ onUnmounted(() => {
 
 .countdown-hint {
   color: #999999;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   margin-top: 6px;
   font-style: italic;
 }
@@ -1542,19 +1980,19 @@ onUnmounted(() => {
 
 .ended-duration {
   color: #F56C6C;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   font-weight: bold;
 }
 
 .ended-note {
   color: #cccccc;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   font-style: italic;
 }
 
 .ended-view-data {
   color: #67C23A;
-  font-size: 13px;
+  font-size: calc(var(--base-font-size) * 0.8125);
   margin-top: 8px;
   display: flex;
   align-items: center;
@@ -1580,28 +2018,22 @@ onUnmounted(() => {
 
 .time-label {
   color: #999999;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
 }
 
 .time-display {
   color: #67C23A;
   font-family: 'Courier New', monospace;
   font-weight: bold;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
 }
 
 /* 設定和配置內容樣式 */
-.settings-content,
-.config-content {
+.settings-pane,
+.config-pane {
   display: flex;
   flex-direction: column;
   gap: 25px;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding-right: 10px;
-  text-align: left;
-  /* 修正：確保內容不會超出 */
-  overflow-x: hidden;
 }
 
 .settings-section,
@@ -1609,7 +2041,9 @@ onUnmounted(() => {
   background-color: #363636;
   border-radius: 12px;
   padding: 20px;
-  border-left: 4px solid #409eff;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  /*border-left: 4px solid #409eff;*/
   /* 修正：確保在小屏幕上不會超出 */
   word-wrap: break-word;
 }
@@ -1618,7 +2052,7 @@ onUnmounted(() => {
 .config-section h3 {
   color: #ffffff;
   margin: 0 0 15px 0;
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1652,13 +2086,13 @@ onUnmounted(() => {
 
 .stat-label {
   color: #cccccc;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: 500;
 }
 
 .stat-value {
   color: #409eff;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: bold;
   /* 修正：允許文字換行 */
   word-wrap: break-word;
@@ -1716,13 +2150,13 @@ onUnmounted(() => {
 
 .info-item .label {
   color: #cccccc;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: 500;
 }
 
 .info-item .value {
   color: #ffffff;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: bold;
   /* 修正：允許文字換行 */
   word-wrap: break-word;
@@ -1761,7 +2195,7 @@ onUnmounted(() => {
 .block-title {
   color: #ffffff;
   margin: 0 0 12px 0;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -1798,7 +2232,7 @@ onUnmounted(() => {
 .field-name {
   color: #ffffff;
   font-weight: bold;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   /* 修正：允許欄位名稱換行 */
   word-wrap: break-word;
 }
@@ -1819,7 +2253,7 @@ onUnmounted(() => {
 
 .preprocessing-label {
   color: #E6A23C;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   font-weight: bold;
   flex-shrink: 0;
 }
@@ -1830,7 +2264,7 @@ onUnmounted(() => {
   padding: 4px 8px;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   word-break: break-all;
 }
 
@@ -1844,14 +2278,14 @@ onUnmounted(() => {
 
 .note-label {
   color: #909399;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   font-weight: bold;
   flex-shrink: 0;
 }
 
 .note-text {
   color: #cccccc;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   line-height: 1.4;
   word-wrap: break-word;
 }
@@ -1891,13 +2325,13 @@ onUnmounted(() => {
 
 .warning-icon {
   color: #E6A23C;
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   flex-shrink: 0;
 }
 
 .warning-text {
   color: #ffffff;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   line-height: 1.4;
   word-wrap: break-word;
 }
@@ -1928,7 +2362,7 @@ onUnmounted(() => {
 .close-hint, .error-hint {
   margin-top: 15px;
   color: #666666;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   line-height: 1.4;
   text-align: center;
   /* 修正：確保提示文字可以換行 */
@@ -1943,20 +2377,35 @@ onUnmounted(() => {
 /* 響應式設計 */
 @media (max-width: 768px) {
   .overlay-modal {
-    padding: 20px;
     margin: 20px;
     max-width: none;
     width: calc(100vw - 40px);
     max-height: calc(100vh - 40px);
   }
   
-  .mode-switcher {
-    flex-direction: column;
-    gap: 10px;
+  .modal-header {
+    padding: 15px 20px 0 20px;
+  }
+  
+  .modal-title {
+    font-size: calc(var(--base-font-size) * 1.25);
+  }
+  
+  .tab-pane {
+    padding: 20px;
+  }
+  
+  :deep(.el-tabs__nav-wrap) {
+    padding: 0 10px;
+  }
+  
+  :deep(.el-tabs__item) {
+    font-size: calc(var(--base-font-size) * 0.875);
+    padding: 0 15px;
   }
   
   .content-title {
-    font-size: 20px;
+    font-size: calc(var(--base-font-size) * 1.25);
   }
   
   .settings-section,
@@ -2010,7 +2459,7 @@ onUnmounted(() => {
   }
   
   .notice-icon {
-    font-size: 28px;
+    font-size: calc(var(--base-font-size) * 1.75);
     margin-top: 0;
     text-align: center;
   }
@@ -2036,16 +2485,16 @@ onUnmounted(() => {
   }
   
   .content-title {
-    font-size: 18px;
+    font-size: calc(var(--base-font-size) * 1.125);
   }
   
   .status-title {
-    font-size: 20px;
+    font-size: calc(var(--base-font-size) * 1.25);
   }
   
   .settings-section h3,
   .config-section h3 {
-    font-size: 16px;
+    font-size: var(--base-font-size);
   }
 }
 
@@ -2088,6 +2537,63 @@ onUnmounted(() => {
 
 .available-fields::-webkit-scrollbar-thumb:hover {
   background: #888888;
+}
+
+/* Element Plus Tabs 深色主題適配 */
+:deep(.el-tabs) {
+  --el-tabs-header-height: 60px;
+}
+
+:deep(.el-tabs__header) {
+  background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
+  margin: 0;
+  border-bottom: 2px solid #4a4a4a;
+}
+
+:deep(.el-tabs__nav-wrap) {
+  background: transparent;
+  padding: 0 20px;
+}
+
+:deep(.el-tabs__nav) {
+  border: none;
+}
+
+:deep(.el-tabs__item) {
+  color: #cccccc;
+  border: none;
+  font-size: var(--base-font-size);
+  font-weight: 500;
+  padding: 0 20px;
+  height: 60px;
+  line-height: 60px;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-tabs__item:hover) {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+}
+
+:deep(.el-tabs__item.is-active) {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.15);
+  border-bottom: 3px solid #409eff;
+}
+
+:deep(.el-tabs__active-bar) {
+  background-color: #409eff;
+  height: 3px;
+}
+
+:deep(.el-tabs__content) {
+  padding: 0;
+  overflow: visible;
+  flex: 1;
+}
+
+:deep(.el-tab-pane) {
+  height: 100%;
 }
 
 /* Element Plus 深色主題適配 */
@@ -2178,7 +2684,7 @@ onUnmounted(() => {
 
 .notice-header {
   color: #00ff7f;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   font-weight: bold;
   margin-bottom: 15px;
   padding-bottom: 8px;
@@ -2189,7 +2695,7 @@ onUnmounted(() => {
 .notice-markdown {
   color: #ffffff;
   line-height: 1.6;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
 }
 
 /* Markdown 內容樣式 */
@@ -2205,10 +2711,10 @@ onUnmounted(() => {
   text-shadow: 0 0 4px currentColor;
 }
 
-.notice-markdown :deep(h1) { font-size: 18px; }
-.notice-markdown :deep(h2) { font-size: 16px; }
-.notice-markdown :deep(h3) { font-size: 15px; }
-.notice-markdown :deep(h4) { font-size: 14px; }
+.notice-markdown :deep(h1) { font-size: calc(var(--base-font-size) * 1.125); }
+.notice-markdown :deep(h2) { font-size: var(--base-font-size); }
+.notice-markdown :deep(h3) { font-size: calc(var(--base-font-size) * 0.9375); }
+.notice-markdown :deep(h4) { font-size: calc(var(--base-font-size) * 0.875); }
 
 .notice-markdown :deep(p) {
   margin: 10px 0;
@@ -2300,18 +2806,85 @@ onUnmounted(() => {
   }
   
   .notice-header {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
     margin-bottom: 12px;
   }
   
   .notice-markdown {
-    font-size: 13px;
+    font-size: calc(var(--base-font-size) * 0.8125);
   }
   
-  .notice-markdown :deep(h1) { font-size: 16px; }
-  .notice-markdown :deep(h2) { font-size: 15px; }
-  .notice-markdown :deep(h3) { font-size: 14px; }
-  .notice-markdown :deep(h4) { font-size: 13px; }
+  .notice-markdown :deep(h1) { font-size: var(--base-font-size); }
+  .notice-markdown :deep(h2) { font-size: calc(var(--base-font-size) * 0.9375); }
+  .notice-markdown :deep(h3) { font-size: calc(var(--base-font-size) * 0.875); }
+  .notice-markdown :deep(h4) { font-size: calc(var(--base-font-size) * 0.8125); }
+}
+
+/* 字體大小設定樣式 */
+.font-size-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.font-size-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.font-size-display {
+  color: #409eff;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.font-size-preview {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border-left: 3px solid #67C23A;
+}
+
+.preview-text {
+  color: #ffffff;
+  font-size: var(--base-font-size, 16px);
+  line-height: 1.5;
+  transition: font-size 0.2s ease;
+}
+
+/* 換頁倒數計時設定樣式 */
+.countdown-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.countdown-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.countdown-display {
+  color: #E6A23C;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.countdown-preview {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(230, 162, 60, 0.05);
+  border-radius: 6px;
+  border-left: 3px solid #E6A23C;
 }
 
 /* autoRefresh 設定樣式 */
@@ -2330,7 +2903,7 @@ onUnmounted(() => {
 .config-label {
   min-width: 80px;
   color: #a0a0a0;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
 }
 
 .config-value {
@@ -2385,5 +2958,127 @@ onUnmounted(() => {
   --el-slider-main-bg-color: #409eff;
   --el-slider-runway-bg-color: rgba(255, 255, 255, 0.1);
   --el-slider-button-bg-color: #409eff;
+}
+
+/* 打字機顏色設定樣式 */
+.color-config {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.color-group {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.color-group h4 {
+  color: #ffffff;
+  font-size: calc(var(--base-font-size) * 0.9375);
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.color-picker-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.color-value {
+  color: #a0a0a0;
+  font-family: 'Courier New', monospace;
+  font-size: calc(var(--base-font-size) * 0.8125);
+  min-width: 120px;
+}
+
+.color-preview {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.color-preview .preview-text {
+  font-size: calc(var(--base-font-size) * 1.0625);
+  font-weight: 500;
+}
+
+.color-preview .time-field-preview {
+  font-family: 'Courier New', monospace;
+}
+
+.color-reset {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+}
+
+/* 打字機速度設定樣式 */
+.typing-speed-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.typing-speed-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.typing-speed-display {
+  color: #E6A23C;
+  font-weight: 600;
+  min-width: 50px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+}
+
+.typing-speed-preview {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(230, 162, 60, 0.05);
+  border-radius: 6px;
+  border-left: 3px solid #E6A23C;
+}
+
+/* Element Plus ColorPicker 樣式覆蓋，確保彈出層不被遮住 */
+:deep(.el-color-picker) {
+  --el-color-picker-size: 32px;
+}
+
+:deep(.el-color-picker__trigger) {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-color-picker__trigger:hover) {
+  border-color: #409eff;
+}
+
+/* 確保 ColorPicker 彈出層有足夠高的 z-index */
+</style>
+<style>
+/* 全域樣式，確保 ColorPicker 彈出層不被遮住 */
+.el-color-dropdown {
+  z-index: 10000 !important;
+}
+
+.el-color-picker__panel {
+  z-index: 10000 !important;
+}
+
+.el-popper {
+  z-index: 10000 !important;
 }
 </style>

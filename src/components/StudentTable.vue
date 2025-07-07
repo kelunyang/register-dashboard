@@ -25,7 +25,7 @@
         v-if="useSciFiMode"
         :students="sortedStudents"
         :pageSize="pageSize"
-        :autoPlayInterval="10"
+        :autoPlayInterval="autoPlayInterval"
         :newCheckins="newCheckins"
         :displayConfig="displayConfig"
         @page-change="handleSciFiPageChange"
@@ -158,6 +158,9 @@ const windowHeight = ref(window.innerHeight)
 
 // 顯示模式
 const useSciFiMode = ref(true) // 預設使用科幻打字機模式
+
+// 換頁倒數計時設定
+const autoPlayInterval = ref(10) // 預設10秒
 
 // 分頁相關
 const currentPage = ref(1)
@@ -377,16 +380,35 @@ const loadUserPreferences = () => {
   } else {
     useSciFiMode.value = true // 預設科幻模式
   }
+  
+  // 載入換頁倒數計時設定
+  const savedAutoPlayInterval = localStorage.getItem('autoPlayInterval')
+  if (savedAutoPlayInterval) {
+    autoPlayInterval.value = parseInt(savedAutoPlayInterval)
+  }
+}
+
+// 監聽 localStorage 變化
+const handleStorageChange = (event) => {
+  if (event.key === 'autoPlayInterval') {
+    const newValue = parseInt(event.newValue)
+    if (!isNaN(newValue)) {
+      autoPlayInterval.value = newValue
+      console.log(`⏰ 偵測到換頁倒數計時設定變更: ${newValue}秒`)
+    }
+  }
 }
 
 onMounted(() => {
   updateScreenSize()
   loadUserPreferences()
   window.addEventListener('resize', updateScreenSize)
+  window.addEventListener('storage', handleStorageChange)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateScreenSize)
+  window.removeEventListener('storage', handleStorageChange)
 })
 
 // 表格樣式
@@ -451,7 +473,7 @@ const rowStyle = ({ row, rowIndex }) => {
 
 .card-header h3 {
   color: #ffffff;
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   margin: 0;
   font-weight: bold;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -485,7 +507,7 @@ const rowStyle = ({ row, rowIndex }) => {
   font-weight: bold;
   color: #ffffff;
   transition: all 0.3s ease;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
 }
 
 .student-name.new-checkin {
@@ -496,14 +518,14 @@ const rowStyle = ({ row, rowIndex }) => {
 
 .new-badge {
   display: block;
-  font-size: 10px;
+  font-size: calc(var(--base-font-size) * 0.625);
   color: #fbbf24;
   margin-top: 2px;
   animation: bounce 1s ease-in-out infinite;
 }
 
 .new-record-emoji {
-  font-size: 16px;
+  font-size: var(--base-font-size);
   animation: pulse 2s ease-in-out infinite;
   cursor: help;
 }
@@ -520,7 +542,7 @@ const rowStyle = ({ row, rowIndex }) => {
 }
 
 .checkin-time {
-  font-size: 10px;
+  font-size: calc(var(--base-font-size) * 0.625);
   color: #67C23A;
   background-color: rgba(103, 194, 58, 0.1);
   padding: 2px 6px;
@@ -531,7 +553,7 @@ const rowStyle = ({ row, rowIndex }) => {
 
 .school-name {
   color: #cccccc;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
 }
 
 .pagination-container {
@@ -558,13 +580,13 @@ const rowStyle = ({ row, rowIndex }) => {
 
 .mobile-school {
   color: #cccccc;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   flex: 1;
 }
 
 .mobile-type {
   color: #999999;
-  font-size: 11px;
+  font-size: calc(var(--base-font-size) * 0.6875);
   background-color: #4a4a4a;
   padding: 2px 6px;
   border-radius: 3px;
@@ -601,7 +623,7 @@ const rowStyle = ({ row, rowIndex }) => {
   }
   
   .card-header h3 {
-    font-size: 16px;
+    font-size: var(--base-font-size);
   }
   
   .display-mode-switcher {
@@ -634,20 +656,20 @@ const rowStyle = ({ row, rowIndex }) => {
   }
   
   .card-header h3 {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
   }
   
   .mobile-school {
-    font-size: 11px;
+    font-size: calc(var(--base-font-size) * 0.6875);
   }
   
   .mobile-type {
-    font-size: 10px;
+    font-size: calc(var(--base-font-size) * 0.625);
     padding: 1px 4px;
   }
   
   .student-name {
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.75);
   }
 }
 
@@ -788,7 +810,7 @@ const rowStyle = ({ row, rowIndex }) => {
 
 :deep(.el-switch__label) {
   color: #ffffff;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: 500;
 }
 

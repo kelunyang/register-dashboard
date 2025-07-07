@@ -22,6 +22,7 @@
       @import-data="handleImportData"
       @config-debug-change="handleConfigDebugChange"
       @auto-refresh-interval-change="handleAutoRefreshIntervalChange"
+      @auto-play-interval-change="handleAutoPlayIntervalChange"
     />
 
     <!-- 載入動畫 -->
@@ -90,12 +91,19 @@
           </div>
           
           
-          <div class="refresh-status">
-            <div class="update-time">最後更新: {{ lastUpdateTime }}</div>
-            <div class="refresh-mode" :class="{ 'auto-mode': isAutoRefreshActive }">
-              {{ isAutoRefreshActive ? `🟢 自動刷新 (${refreshInterval}秒)` : '🔴 手動刷新模式' }}
+          <!-- 統一的刷新狀態指示器 -->
+          <el-tooltip 
+            :content="`最後更新: ${lastUpdateTime}`" 
+            placement="bottom"
+            effect="dark"
+          >
+            <div class="refresh-status-indicator" :class="{ 'auto-mode': isAutoRefreshActive }">
+              <div class="status-dot"></div>
+              <span class="status-text">
+                {{ isAutoRefreshActive ? `${refreshInterval}秒刷新` : '手動刷新模式' }}
+              </span>
             </div>
-          </div>
+          </el-tooltip>
         </div>
       </div>
     </div>
@@ -1079,6 +1087,12 @@ const handleAutoRefreshIntervalChange = (value) => {
   setupAutoRefresh() // 重新設置自動刷新
 }
 
+const handleAutoPlayIntervalChange = (value) => {
+  console.log(`⏰ 更新換頁倒數計時間隔: ${value}秒`)
+  // 這個設定已經在 UnifiedOverlay 中保存到 localStorage 了
+  // StudentTable 組件會在下次載入時自動讀取新的設定
+}
+
 // 監聽活動狀態變化
 watch(() => activityStatus.value.status, (newStatus, oldStatus) => {
   setupAutoRefresh()
@@ -1221,7 +1235,7 @@ onUnmounted(() => {
 
 .header-left h1 {
   color: #ffffff;
-  font-size: 24px;
+  font-size: calc(var(--base-font-size) * 1.5);
   font-weight: bold;
   margin: 0;
   /* 修正：允許標題換行 */
@@ -1279,7 +1293,7 @@ onUnmounted(() => {
 
 .refresh-countdown-number {
   color: #409eff;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   font-weight: 600;
   z-index: 1;
   position: relative;
@@ -1287,7 +1301,7 @@ onUnmounted(() => {
 
 .refresh-countdown-text {
   color: #a0a0a0;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   white-space: nowrap;
 }
 
@@ -1346,7 +1360,7 @@ onUnmounted(() => {
 
 .status-text {
   color: #ffffff;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: 500;
   /* 修正：允許文字換行 */
   word-wrap: break-word;
@@ -1358,7 +1372,7 @@ onUnmounted(() => {
   color: #409eff !important;
   padding: 2px 6px !important;
   height: auto !important;
-  font-size: 12px !important;
+  font-size: calc(var(--base-font-size) * 0.75) !important;
   flex-shrink: 0;
 }
 
@@ -1373,7 +1387,7 @@ onUnmounted(() => {
 
 .control-label {
   color: #cccccc;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   white-space: nowrap;
 }
 
@@ -1385,32 +1399,57 @@ onUnmounted(() => {
   max-width: 200px;
 }
 
-.refresh-status {
+.refresh-status-indicator {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  /* 修正：確保狀態顯示不會過寬 */
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(245, 108, 108, 0.15);
+  border: 1px solid rgba(245, 108, 108, 0.3);
   max-width: 200px;
   min-width: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.update-time {
-  color: #cccccc;
-  font-size: 14px;
-  /* 修正：允許時間文字換行 */
+.refresh-status-indicator:hover {
+  background: rgba(245, 108, 108, 0.25);
+  border-color: rgba(245, 108, 108, 0.5);
+}
+
+.refresh-status-indicator.auto-mode {
+  background: rgba(103, 194, 58, 0.15);
+  border: 1px solid rgba(103, 194, 58, 0.3);
+}
+
+.refresh-status-indicator.auto-mode:hover {
+  background: rgba(103, 194, 58, 0.25);
+  border-color: rgba(103, 194, 58, 0.5);
+}
+
+.refresh-status-indicator .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #F56C6C;
+  box-shadow: 0 0 8px rgba(245, 108, 108, 0.6);
+  animation: statusPulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.refresh-status-indicator.auto-mode .status-dot {
+  background-color: #67C23A;
+  box-shadow: 0 0 8px rgba(103, 194, 58, 0.6);
+}
+
+.refresh-status-indicator .status-text {
+  color: #ffffff;
+  font-size: calc(var(--base-font-size) * 0.875);
+  font-weight: 500;
   word-wrap: break-word;
-}
-
-.refresh-mode {
-  color: #F56C6C;
-  font-size: 12px;
-  font-weight: bold;
-  /* 修正：允許模式文字換行 */
-  word-wrap: break-word;
-}
-
-.refresh-mode.auto-mode {
-  color: #67C23A;
+  flex: 1;
+  min-width: 0;
 }
 
 .dashboard-content {
@@ -1431,7 +1470,7 @@ onUnmounted(() => {
 /* 動態 Notice 內容樣式 */
 .dynamic-notice-content {
   line-height: 1.6;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   color: #333333;
   /* 修正：確保通知內容不會超出 */
   word-wrap: break-word;
@@ -1442,7 +1481,7 @@ onUnmounted(() => {
 }
 
 .dynamic-notice-content :deep(.notice-title) {
-  font-size: 20px;
+  font-size: calc(var(--base-font-size) * 1.25);
   font-weight: bold;
   margin-bottom: 15px;
   color: #E6A23C;
@@ -1455,7 +1494,7 @@ onUnmounted(() => {
 }
 
 .dynamic-notice-content :deep(.notice-h2) {
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   font-weight: bold;
   margin: 15px 0 10px 0;
   color: #409eff;
@@ -1466,7 +1505,7 @@ onUnmounted(() => {
 }
 
 .dynamic-notice-content :deep(.notice-h3) {
-  font-size: 16px;
+  font-size: var(--base-font-size);
   font-weight: 600;
   margin: 12px 0 8px 0;
   color: #67C23A;
@@ -1555,7 +1594,7 @@ onUnmounted(() => {
 }
 
 .placeholder-icon {
-  font-size: 64px;
+  font-size: calc(var(--base-font-size) * 4);
   margin-bottom: 20px;
   animation: float 3s ease-in-out infinite;
 }
@@ -1571,7 +1610,7 @@ onUnmounted(() => {
 
 .placeholder-title {
   color: #ffffff;
-  font-size: 28px;
+  font-size: calc(var(--base-font-size) * 1.75);
   font-weight: bold;
   margin: 0 0 15px 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -1580,7 +1619,7 @@ onUnmounted(() => {
 
 .placeholder-message {
   color: #cccccc;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   line-height: 1.6;
   margin: 0 0 30px 0;
   word-wrap: break-word;
@@ -1597,7 +1636,7 @@ onUnmounted(() => {
 
 .next-event-info h3 {
   color: #ffffff;
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   margin: 0 0 15px 0;
   word-wrap: break-word;
 }
@@ -1610,7 +1649,7 @@ onUnmounted(() => {
 
 .event-title {
   color: #409eff;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   font-weight: bold;
   margin-bottom: 8px;
   word-wrap: break-word;
@@ -1655,20 +1694,20 @@ onUnmounted(() => {
 }
 
 .time-icon {
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   flex-shrink: 0;
 }
 
 .time-label {
   color: #cccccc;
-  font-size: 13px;
+  font-size: calc(var(--base-font-size) * 0.8125);
   min-width: 70px;
   flex-shrink: 0;
 }
 
 .time-value {
   color: #ffffff;
-  font-size: 13px;
+  font-size: calc(var(--base-font-size) * 0.8125);
   font-weight: 500;
   font-family: 'Courier New', monospace;
   flex: 1;
@@ -1719,7 +1758,7 @@ onUnmounted(() => {
 .stat-card h4 {
   color: #ffffff;
   margin: 0;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: bold;
   word-wrap: break-word;
 }
@@ -1794,23 +1833,23 @@ onUnmounted(() => {
   
   .ended-notice :deep(.el-alert__icon) {
     color: #409eff;
-    font-size: 24px;
+    font-size: calc(var(--base-font-size) * 1.5);
   }
   
   .dynamic-notice-content {
-    font-size: 16px;
+    font-size: var(--base-font-size);
   }
   
   .dynamic-notice-content :deep(.notice-title) {
-    font-size: 22px;
+    font-size: calc(var(--base-font-size) * 1.375);
   }
   
   .dynamic-notice-content :deep(.notice-h2) {
-    font-size: 20px;
+    font-size: calc(var(--base-font-size) * 1.25);
   }
   
   .dynamic-notice-content :deep(.notice-text) {
-    font-size: 16px;
+    font-size: var(--base-font-size);
   }
 }
 
@@ -1835,7 +1874,7 @@ onUnmounted(() => {
   }
   
   .header-left h1 {
-    font-size: 18px;
+    font-size: calc(var(--base-font-size) * 1.125);
   }
   
   .header-right {
@@ -1871,10 +1910,10 @@ onUnmounted(() => {
     width: 250px !important;
   }
   
-  .refresh-status {
+  .refresh-status-indicator {
     width: 100%;
     max-width: none;
-    text-align: center;
+    justify-content: center;
   }
   
   .dashboard-content {
@@ -1903,21 +1942,21 @@ onUnmounted(() => {
   }
   
   .dynamic-notice-content {
-    font-size: 13px;
+    font-size: calc(var(--base-font-size) * 0.8125);
   }
   
   .dynamic-notice-content :deep(.notice-title) {
-    font-size: 16px;
+    font-size: var(--base-font-size);
     margin-bottom: 10px;
   }
   
   .dynamic-notice-content :deep(.notice-h2) {
-    font-size: 15px;
+    font-size: calc(var(--base-font-size) * 0.9375);
     margin: 10px 0 6px 0;
   }
   
   .dynamic-notice-content :deep(.notice-h3) {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
     margin: 8px 0 4px 0;
   }
   
@@ -1958,7 +1997,7 @@ onUnmounted(() => {
 }
 
 .data-note {
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   color: #666666;
   font-style: italic;
 }
@@ -1966,6 +2005,15 @@ onUnmounted(() => {
 /* Element Plus 深色主題適配 */
 :deep(.el-button) {
   border-radius: 8px;
+  font-size: calc(var(--base-font-size) * 0.875) !important;
+}
+
+:deep(.el-button--small) {
+  font-size: calc(var(--base-font-size) * 0.75) !important;
+}
+
+:deep(.el-button--large) {
+  font-size: var(--base-font-size) !important;
 }
 
 :deep(.el-button--primary) {

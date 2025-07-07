@@ -203,7 +203,7 @@ const meterTitle = computed(() => {
 
 const meterLabel = computed(() => {
   if (props.filterType === 'all') {
-    return '依叫號報到'
+    return '依號次報到'
   } else {
     return `${props.filterType} 類別`
   }
@@ -251,7 +251,7 @@ const progressStatus = computed(() => {
 .meter-header h3 {
   color: #ffffff;
   margin: 0;
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   font-weight: bold;
 }
 
@@ -420,7 +420,7 @@ const progressStatus = computed(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   font-weight: bold;
 }
 
@@ -428,11 +428,11 @@ const progressStatus = computed(() => {
   display: flex;
   align-items: center;
   gap: 16px;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
 }
 
 .meter-number {
-  font-size: 24px;
+  font-size: calc(var(--base-font-size) * 1.5);
   font-weight: bold;
   color: #67C23A;
   font-family: 'Courier New', monospace;
@@ -453,20 +453,20 @@ const progressStatus = computed(() => {
 }
 
 .meter-separator {
-  font-size: 20px;
+  font-size: calc(var(--base-font-size) * 1.25);
   color: #cccccc;
   font-family: 'Courier New', monospace;
 }
 
 .meter-total {
-  font-size: 20px;
+  font-size: calc(var(--base-font-size) * 1.25);
   font-weight: bold;
   color: #ffffff;
   font-family: 'Courier New', monospace;
 }
 
 .meter-label {
-  font-size: 11px;
+  font-size: calc(var(--base-font-size) * 0.6875);
   color: #999999;
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
@@ -474,7 +474,7 @@ const progressStatus = computed(() => {
 }
 
 .meter-percentage {
-  font-size: 16px;
+  font-size: calc(var(--base-font-size) * 1.0);
   color: #409eff;
   font-weight: bold;
   font-family: 'Courier New', monospace;
@@ -482,7 +482,7 @@ const progressStatus = computed(() => {
 }
 
 .meter-status {
-  font-size: 10px;
+  font-size: calc(var(--base-font-size) * 0.625);
   color: #409eff;
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
@@ -537,19 +537,19 @@ const progressStatus = computed(() => {
 }
 
 .stat-number {
-  font-size: 32px;
+  font-size: calc(var(--base-font-size) * 2.0);
   font-weight: bold;
   color: #ffffff;
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   color: #cccccc;
   margin-top: 4px;
 }
 
 .stat-divider {
-  font-size: 24px;
+  font-size: calc(var(--base-font-size) * 1.5);
   color: #666666;
 }
 
@@ -593,13 +593,13 @@ const progressStatus = computed(() => {
 }
 
 .quick-stat-number {
-  font-size: 24px;
+  font-size: calc(var(--base-font-size) * 1.5);
   font-weight: bold;
   color: #ffffff;
 }
 
 .quick-stat-label {
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
   color: #cccccc;
   margin-top: 4px;
 }
@@ -615,7 +615,7 @@ const progressStatus = computed(() => {
 
 .comparison-title {
   color: #409eff;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   font-weight: bold;
   margin-bottom: 10px;
   text-align: center;
@@ -643,12 +643,12 @@ const progressStatus = computed(() => {
 
 .comparison-label {
   color: #cccccc;
-  font-size: 13px;
+  font-size: calc(var(--base-font-size) * 0.8125);
 }
 
 .comparison-value {
   color: #ffffff;
-  font-size: 13px;
+  font-size: calc(var(--base-font-size) * 0.8125);
   font-weight: 500;
   font-family: 'Courier New', monospace;
 }
@@ -665,13 +665,13 @@ const progressStatus = computed(() => {
 }
 
 .mobile-no-data .no-data-icon {
-  font-size: 24px;
+  font-size: calc(var(--base-font-size) * 1.5);
   margin-bottom: 8px;
 }
 
 .mobile-no-data .no-data-text {
   color: #cccccc;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
 }
 
 .system-status {
@@ -692,13 +692,13 @@ const progressStatus = computed(() => {
 }
 
 .status-icon {
-  font-size: 20px;
+  font-size: calc(var(--base-font-size) * 1.25);
   margin-bottom: 8px;
 }
 
 .status-text {
   color: #cccccc;
-  font-size: 12px;
+  font-size: calc(var(--base-font-size) * 0.75);
 }
 
 /* 響應式設計 */
@@ -712,11 +712,11 @@ const progressStatus = computed(() => {
   }
   
   .meter-stats {
-    font-size: 16px;
+    font-size: calc(var(--base-font-size) * 1.0);
   }
   
   .meter-percentage {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
   }
   
   .mobile-meter {
@@ -734,7 +734,7 @@ const progressStatus = computed(() => {
   }
   
   .meter-header h3 {
-    font-size: 16px;
+    font-size: calc(var(--base-font-size) * 1.0);
   }
   
   .quick-stats {
@@ -747,7 +747,7 @@ const progressStatus = computed(() => {
   }
   
   .quick-stat-number {
-    font-size: 20px;
+    font-size: calc(var(--base-font-size) * 1.25);
   }
   
   .comparison-stats {
@@ -767,19 +767,19 @@ const progressStatus = computed(() => {
   }
   
   .stat-number {
-    font-size: 28px;
+    font-size: calc(var(--base-font-size) * 1.75);
   }
   
   .stat-label {
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.75);
   }
   
   .meter-header h3 {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
   }
   
   .filter-tag {
-    font-size: 11px;
+    font-size: calc(var(--base-font-size) * 0.6875);
     padding: 2px 6px;
   }
 }

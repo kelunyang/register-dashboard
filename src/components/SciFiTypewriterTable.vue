@@ -21,15 +21,13 @@
           </el-input>
         </div>
         
-        <div class="page-info">
-          <el-icon><Document /></el-icon>
+        <span class="page-info">
           <span v-if="!isSearchMode">第 {{ currentPage }} / {{ totalPages }} 頁</span>
           <span v-else>搜尋模式 - {{ currentPageStudents.length }} 筆</span>
-        </div>
-        <div class="student-count">
-          <el-icon><User /></el-icon>
-          <span>{{ isSearchMode ? filteredStudents.length : totalStudents }} 位學生</span>
-        </div>
+        </span>
+        <span class="student-count">
+          <span>共{{ isSearchMode ? filteredStudents.length : totalStudents }} 筆</span>
+        </span>
       </div>
       
       <div class="controls">
@@ -74,16 +72,6 @@
             </el-button>
           </div>
           
-          <!-- 打字速度控制 -->
-          <div class="typing-speed-control">
-            <span class="control-label">打字速度</span>
-            <el-select v-model="typingSpeed" @change="onTypingSpeedChange" size="large">
-              <el-option label="慢速" :value="100" />
-              <el-option label="中速" :value="50" />
-              <el-option label="快速" :value="25" />
-              <el-option label="極速" :value="10" />
-            </el-select>
-          </div>
         </template>
         
         <!-- 搜尋模式的控制 -->
@@ -237,7 +225,7 @@ const props = defineProps({
   },
   pageSize: {
     type: Number,
-    default: 15
+    default: 10
   },
   autoPlayInterval: {
     type: Number,
@@ -561,6 +549,7 @@ const startFieldTyping = (student, config, rowIndex, colIndex) => {
 }
 
 const onTypingSpeedChange = (newSpeed) => {
+  typingSpeed.value = newSpeed
   //console.log(`⚡ 打字速度改為: ${newSpeed}ms`)
   // 如果正在打字，重新開始動畫
   if (typingRows.value.size > 0) {
@@ -746,6 +735,25 @@ onMounted(async () => {
     startAutoPlay()
   }
   
+  // 載入已保存的打字機速度
+  const savedTypingSpeed = localStorage.getItem('typingSpeed')
+  if (savedTypingSpeed) {
+    typingSpeed.value = parseInt(savedTypingSpeed)
+  }
+  
+  // 監聽打字機速度變化事件
+  const handleTypingSpeedChange = (event) => {
+    onTypingSpeedChange(event.detail.speed)
+  }
+  window.addEventListener('typingSpeedChange', handleTypingSpeedChange)
+  
+  // 清理函數
+  const cleanup = () => {
+    window.removeEventListener('typingSpeedChange', handleTypingSpeedChange)
+  }
+  // 保存清理函數供 onUnmounted 使用
+  window._sciFiTypingSpeedCleanup = cleanup
+  
   await nextTick()
   startTypingAnimation()
 })
@@ -753,6 +761,12 @@ onMounted(async () => {
 onUnmounted(() => {
   stopAutoPlay()
   typingTimers.forEach(timer => clearTimeout(timer))
+  
+  // 清理打字機速度事件監聽器
+  if (window._sciFiTypingSpeedCleanup) {
+    window._sciFiTypingSpeedCleanup()
+    delete window._sciFiTypingSpeedCleanup
+  }
 })
 </script>
 
@@ -828,7 +842,7 @@ onUnmounted(() => {
 
 .search-input :deep(.el-input__inner) {
   color: #00ff7f;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   font-family: 'Courier New', monospace;
 }
 
@@ -985,7 +999,7 @@ onUnmounted(() => {
   border-right: 1px solid rgba(0, 255, 127, 0.2);
   position: relative;
   font-family: 'Courier New', monospace;
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -1083,12 +1097,12 @@ onUnmounted(() => {
   color: #00d4ff;
   font-family: 'Courier New', monospace;
   font-weight: bold;
-  font-size: 16px;
+  font-size: var(--base-font-size);
   text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
 
 .new-record-marker {
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   margin-right: 4px;
   animation: pulse 2s ease-in-out infinite;
   cursor: help;
@@ -1099,7 +1113,7 @@ onUnmounted(() => {
 .typewriter-cell {
   text-align: center;
   color: #ffffff;
-  font-size: 18px;
+  font-size: calc(var(--base-font-size) * 1.125);
   font-family: 'Courier New', monospace;
   padding: 0 12px;
   border-right: 1px solid rgba(0, 255, 127, 0.1);
@@ -1137,13 +1151,13 @@ onUnmounted(() => {
 }
 
 .typewriter-content.content-complete {
-  color: #00ff7f;
-  text-shadow: 0 0 5px rgba(0, 255, 127, 0.5);
+  color: var(--normal-field-complete-color, #00ff7f);
+  text-shadow: 0 0 5px var(--normal-field-shadow-color, rgba(0, 255, 127, 0.5));
 }
 
 .typewriter-content.is-time-field.content-complete {
-  color: #00d4ff;
-  text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+  color: var(--time-field-complete-color, #00d4ff);
+  text-shadow: 0 0 5px var(--time-field-shadow-color, rgba(0, 212, 255, 0.5));
   font-weight: bold;
 }
 
@@ -1225,13 +1239,13 @@ onUnmounted(() => {
   }
   
   .typewriter-cell {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
     padding: 0 8px;
   }
   
   .header-cell {
     padding: 12px 8px;
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.75);
   }
   
   .row-number {
@@ -1240,7 +1254,7 @@ onUnmounted(() => {
   }
   
   .row-index {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
   }
   
   .typewriter-row {
@@ -1254,13 +1268,13 @@ onUnmounted(() => {
   }
   
   .typewriter-cell {
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.75);
     padding: 0 6px;
   }
   
   .header-cell {
     padding: 10px 6px;
-    font-size: 10px;
+    font-size: calc(var(--base-font-size) * 0.625);
   }
 }
 

@@ -42,18 +42,24 @@
     </div>
     
     <div class="chart-info">
-      <div class="info-item">
-        <span class="info-label">時間間隔:</span>
-        <span class="info-value">{{ config.interval }}分鐘</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">最高流量:</span>
-        <span class="info-value">{{ maxFlow }}人</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">平均流量:</span>
-        <span class="info-value">{{ avgFlow }}人</span>
-      </div>
+      <el-statistic
+        title="時間間隔"
+        :value="config.interval"
+        suffix="分鐘"
+        class="flow-statistic"
+      />
+      <el-statistic
+        title="最高流量"
+        :value="maxFlow"
+        suffix="人"
+        class="flow-statistic"
+      />
+      <el-statistic
+        title="平均流量"
+        :value="avgFlow"
+        suffix="人"
+        class="flow-statistic"
+      />
     </div>
   </div>
 </template>
@@ -290,7 +296,8 @@ const drawPoints = (ctx, padding, chartWidth, chartHeight, maxCount) => {
     // 在較大屏幕上顯示數值
     if (window.innerWidth >= 768) {
       ctx.fillStyle = '#ffffff'
-      ctx.font = '10px Monaco, monospace'
+      const baseFontSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--base-font-size')) || 16
+      ctx.font = `${Math.max(baseFontSize * 0.625, 10)}px Monaco, monospace`
       ctx.textAlign = 'center'
       ctx.fillText(point.count.toString(), x, y - 8)
       ctx.fillStyle = '#FFFFFF'
@@ -301,7 +308,9 @@ const drawPoints = (ctx, padding, chartWidth, chartHeight, maxCount) => {
 // 繪製標籤
 const drawLabels = (ctx, padding, chartWidth, chartHeight, maxCount) => {
   ctx.fillStyle = '#cccccc'
-  ctx.font = window.innerWidth < 768 ? '10px Arial' : '11px Arial'
+  const baseFontSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--base-font-size')) || 16
+  const fontSize = window.innerWidth < 768 ? Math.max(baseFontSize * 0.625, 10) : Math.max(baseFontSize * 0.6875, 11)
+  ctx.font = `${fontSize}px Arial`
   
   // Y軸標籤
   ctx.textAlign = 'right'
@@ -543,20 +552,20 @@ canvas {
   border-radius: 6px;
 }
 
-.info-item {
+.flow-statistic {
   text-align: center;
 }
 
-.info-label {
-  display: block;
-  font-size: 12px;
+/* Element Plus Statistic 樣式覆蓋 */
+.flow-statistic :deep(.el-statistic__head) {
+  font-size: calc(var(--base-font-size) * 0.75);
   color: #00AA00;
-  margin-bottom: 2px;
   font-family: Monaco, monospace;
+  margin-bottom: 2px;
 }
 
-.info-value {
-  font-size: 14px;
+.flow-statistic :deep(.el-statistic__content) {
+  font-size: calc(var(--base-font-size) * 0.875);
   color: #00FF00;
   font-weight: bold;
   font-family: Monaco, monospace;
@@ -574,19 +583,19 @@ canvas {
 }
 
 .no-data-icon {
-  font-size: 32px;
+  font-size: calc(var(--base-font-size) * 2.0);
   margin-bottom: 12px;
 }
 
 .no-data-title {
-  font-size: 16px;
+  font-size: calc(var(--base-font-size) * 1.0);
   font-weight: bold;
   color: #cccccc;
   margin-bottom: 4px;
 }
 
 .no-data-subtitle {
-  font-size: 14px;
+  font-size: calc(var(--base-font-size) * 0.875);
   color: #999999;
 }
 
@@ -608,7 +617,7 @@ canvas {
   
   .chart-controls :deep(.el-button) {
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.75);
   }
   
   .chart-info {
@@ -617,13 +626,13 @@ canvas {
     padding: 8px;
   }
   
-  .info-item {
+  .flow-statistic {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
   
-  .info-label {
+  .flow-statistic :deep(.el-statistic__head) {
     margin-bottom: 0;
   }
 }
@@ -631,15 +640,15 @@ canvas {
 @media (max-width: 480px) {
   .chart-controls :deep(.el-button) {
     padding: 4px 8px;
-    font-size: 11px;
+    font-size: calc(var(--base-font-size) * 0.6875);
   }
   
-  .info-value {
-    font-size: 13px;
+  .flow-statistic :deep(.el-statistic__content) {
+    font-size: calc(var(--base-font-size) * 0.8125);
   }
   
-  .info-label {
-    font-size: 11px;
+  .flow-statistic :deep(.el-statistic__head) {
+    font-size: calc(var(--base-font-size) * 0.6875);
   }
 }
 </style>

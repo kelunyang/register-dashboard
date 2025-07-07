@@ -36,4 +36,14 @@ if (storageService.isSupported()) {
   console.warn('⚠️ LocalStorage 不支援，某些功能可能受限')
 }
 
+// 初始化字體大小設定
+const savedFontSize = localStorage.getItem('fontSize')
+if (savedFontSize) {
+  document.documentElement.style.setProperty('--base-font-size', `${savedFontSize}px`)
+  console.log(`🔤 已載入儲存的字體大小: ${savedFontSize}px`)
+} else {
+  document.documentElement.style.setProperty('--base-font-size', '16px')
+  console.log('🔤 使用預設字體大小: 16px')
+}
+
 app.mount('#app')

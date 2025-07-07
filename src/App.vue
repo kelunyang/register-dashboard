@@ -9,6 +9,10 @@ import StudentDashboard from './components/StudentDashboard.vue'
 </script>
 
 <style>
+:root {
+  --base-font-size: 16px;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -19,6 +23,7 @@ body {
   background-color: #1a1a1a;
   color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--base-font-size);
 }
 
 .app-container {
