@@ -23,6 +23,7 @@
       @config-debug-change="handleConfigDebugChange"
       @auto-refresh-interval-change="handleAutoRefreshIntervalChange"
       @auto-play-interval-change="handleAutoPlayIntervalChange"
+      @auto-refresh-status-change="handleAutoRefreshStatusChange"
     />
 
     <!-- 載入動畫 -->
@@ -120,7 +121,6 @@
           />
           
           <!-- 公告區塊 -->
-           {{noticeContent}}
           <div v-if="noticeContent" class="notice-section">
             <el-card class="notice-card">
               <template #header>
@@ -1131,6 +1131,26 @@ const handleAutoPlayIntervalChange = (value) => {
   // StudentTable 組件會在下次載入時自動讀取新的設定
 }
 
+const handleAutoRefreshStatusChange = (enabled) => {
+  console.log(`🔄 自動刷新狀態變更: ${enabled ? '啟用' : '停用'}`)
+  // 重新設置自動刷新
+  if (enabled) {
+    // 等待一下讓 apiService 更新完成
+    setTimeout(() => {
+      setupAutoRefresh()
+    }, 100)
+  } else {
+    // 停用自動刷新
+    if (refreshTimer.value) {
+      refreshTimer.value = null
+    }
+    if (refreshCountdownTimer.value) {
+      clearInterval(refreshCountdownTimer.value)
+      refreshCountdownTimer.value = null
+    }
+  }
+}
+
 // 監聽活動狀態變化
 watch(() => activityStatus.value.status, (newStatus, oldStatus) => {
   setupAutoRefresh()
@@ -2029,7 +2049,7 @@ onUnmounted(() => {
   /* 手機版公告樣式 */
   .notice-content {
     padding: 15px;
-    font-size: calc(var(--base-font-size) * 0.8125);
+    font-size: calc(var(--base-font-size) * 1.0);
   }
   
   .notice-header h4 {
@@ -2162,7 +2182,7 @@ onUnmounted(() => {
   padding: 20px;
   line-height: 1.6;
   color: #ffffff;
-  font-size: calc(var(--base-font-size) * 0.875);
+  font-size: calc(var(--base-font-size) * 1.125);
 }
 
 /* Markdown 內容樣式 */
@@ -2201,8 +2221,12 @@ onUnmounted(() => {
 }
 
 .notice-content :deep(strong) {
-  color: #67C23A;
+  color: #ffffff;
   font-weight: bold;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.9),
+               0 0 10px rgba(0, 0, 0, 0.7),
+               0 0 15px rgba(0, 0, 0, 0.5),
+               0 0 20px rgba(0, 0, 0, 0.3);
 }
 
 .notice-content :deep(em) {

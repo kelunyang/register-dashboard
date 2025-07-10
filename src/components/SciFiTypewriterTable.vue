@@ -54,6 +54,24 @@
             <span class="countdown-text">秒後換頁</span>
           </div>
           
+          <!-- 輪播範圍選擇 -->
+          <div class="carousel-range-selector">
+            <el-select
+              v-model="carouselRange"
+              placeholder="輪播範圍"
+              size="large"
+              @change="onCarouselRangeChange"
+              style="width: 120px"
+            >
+              <el-option
+                v-for="option in carouselRangeOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </div>
+          
           <!-- 手動控制 -->
           <div class="manual-controls">
             <el-button 
@@ -70,6 +88,17 @@
             >
               <el-icon><ArrowRight /></el-icon>
             </el-button>
+            
+            <!-- 重置欄寬按鈕 -->
+            <el-button 
+              @click="resetAllColumnWidths"
+              type="default"
+              size="large"
+              title="重置所有欄位為預設寬度"
+            >
+              <el-icon><Refresh /></el-icon>
+              重置欄寬
+            </el-button>
           </div>
           
         </template>
@@ -84,6 +113,17 @@
             >
               <el-icon><Close /></el-icon>
               退出搜尋
+            </el-button>
+            
+            <!-- 重置欄寬按鈕 -->
+            <el-button 
+              @click="resetAllColumnWidths"
+              type="default"
+              size="large"
+              title="重置所有欄位為預設寬度"
+            >
+              <el-icon><Refresh /></el-icon>
+              重置欄寬
             </el-button>
             
             <div v-if="filteredStudents.length > pageSize" class="search-pagination">
@@ -118,10 +158,31 @@
           v-for="(config, index) in visibleDisplayConfig" 
           :key="config.欄位名稱 || config.栏位名称"
           class="header-cell"
-          :style="{ flex: getColumnFlex(config) }"
+          :style="{ flex: getColumnFlex(config, index) }"
+          @dblclick="startEditColumnName(index)"
+          :title="'雙擊編輯欄位名稱'"
         >
-          <span class="header-text">{{ config.顯示名稱 || config.显示名称 || config.欄位名稱 || config.栏位名称 }}</span>
+          <!-- 編輯模式 -->
+          <input 
+            v-if="editingColumn === index"
+            v-model="editingText"
+            @keydown.enter="confirmEdit"
+            @keydown.esc="cancelEdit"
+            @blur="confirmEdit"
+            class="header-edit-input"
+            ref="editInput"
+          />
+          <!-- 顯示模式 -->
+          <span v-else class="header-text">{{ getColumnDisplayName(config, index) }}</span>
           <div class="header-underline"></div>
+          <!-- 可拖拉的分隔線 -->
+          <div 
+            v-if="index < visibleDisplayConfig.length - 1"
+            class="column-resizer"
+            @mousedown="startResize($event, index)"
+            @dblclick.stop="resetColumnWidth(index)"
+            :title="'雙擊重置欄寬'"
+          ></div>
         </div>
       </div>
       
@@ -148,7 +209,7 @@
             v-for="(config, colIndex) in visibleDisplayConfig" 
             :key="config.欄位名稱 || config.栏位名称"
             class="typewriter-cell"
-            :style="{ flex: getColumnFlex(config) }"
+            :style="{ flex: getColumnFlex(config, colIndex) }"
           >
             <!-- 打字機游標 -->
             <span 
@@ -180,10 +241,10 @@
             <span class="row-index">--</span>
           </div>
           <div 
-            v-for="config in visibleDisplayConfig" 
+            v-for="(config, index) in visibleDisplayConfig" 
             :key="config.欄位名稱 || config.栏位名称"
             class="typewriter-cell empty-cell"
-            :style="{ flex: getColumnFlex(config) }"
+            :style="{ flex: getColumnFlex(config, index) }"
           >
             <span class="empty-content">--</span>
           </div>
@@ -208,8 +269,8 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { 
-  Document, User, VideoPause, VideoPlay, 
-  ArrowLeft, ArrowRight, Search, Close 
+  VideoPause, VideoPlay, 
+  ArrowLeft, ArrowRight, Search, Close, Refresh 
 } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
@@ -238,19 +299,45 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['page-change'])
+const emit = defineEmits(['page-change', 'carousel-range-change'])
 
 // 響應式數據
 const currentPage = ref(1)
 const isAutoPlay = ref(true)
 const countdown = ref(props.autoPlayInterval)
 const typingSpeed = ref(50) // 毫秒，每個字符的打字間隔
+const carouselRange = ref('unlimited') // 預設無限制
+
+// 輪播範圍選項
+const carouselRangeOptions = [
+  { value: '1', label: '前 1 頁' },
+  { value: '2', label: '前 2 頁' },
+  { value: '3', label: '前 3 頁' },
+  { value: '4', label: '前 4 頁' },
+  { value: '5', label: '前 5 頁' },
+  { value: 'unlimited', label: '無限制' }
+]
 
 // 搜尋相關
 const searchQuery = ref('')
 const filteredStudents = ref([])
 const isSearchMode = ref(false)
 const currentSearchPage = ref(1)
+
+// 欄寬調整相關
+const customColumnWidths = ref({})
+const isResizing = ref(false)
+const resizeData = ref({
+  startX: 0,
+  startFlex: 0,
+  columnIndex: -1,
+  totalFlex: 0
+})
+
+// 欄位名稱編輯相關
+const customColumnNames = ref({})
+const editingColumn = ref(-1)
+const editingText = ref('')
 
 // 打字機狀態 - 修复响应式问题
 const typingStates = ref(new Map()) // 每行每列的打字狀態
@@ -366,10 +453,27 @@ const formatTimeField = (value, config) => {
       
       if (format.includes('YYYY-MM-DD HH:mm:ss')) {
         return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
+      } else if (format.includes('YYYY-MM-DD')) {
+        return dayjs(timestamp).format('YYYY-MM-DD')
       } else if (format.includes('HH:mm:ss')) {
         return dayjs(timestamp).format('HH:mm:ss')
       } else if (format.includes('MM-DD HH:mm')) {
         return dayjs(timestamp).format('MM-DD HH:mm')
+      } else if (format.includes('YYYY')) {
+        // 如果包含年份但沒有匹配到完整格式，嘗試智能匹配
+        if (format.includes('HH') || format.includes('mm')) {
+          return dayjs(timestamp).format('YYYY-MM-DD HH:mm')
+        } else {
+          return dayjs(timestamp).format('YYYY-MM-DD')
+        }
+      } else if (format.trim()) {
+        // 如果有指定格式但不在上述條件中，直接使用該格式
+        try {
+          return dayjs(timestamp).format(format)
+        } catch {
+          // 如果格式無效，使用預設格式
+          return dayjs(timestamp).format('MM-DD HH:mm')
+        }
       } else {
         // 預設格式：月日時分
         return dayjs(timestamp).format('MM-DD HH:mm')
@@ -395,18 +499,33 @@ const getFieldValue = (student, config) => {
   return value ? value.toString() : ''
 }
 
-const getColumnFlex = (config) => {
+const getColumnFlex = (config, index) => {
   const fieldName = config.欄位名稱 || config.栏位名称 || config.fieldName || ''
+  const fieldType = config.欄位性質 || config.栏位性质 || config.fieldType || ''
   
-  // 根據欄位類型分配寬度
+  // 優先使用自訂欄寬
+  const customKey = `${fieldName}-${index}`
+  if (customColumnWidths.value[customKey]) {
+    return customColumnWidths.value[customKey]
+  }
+  
+  // 根據欄位類型分配預設寬度
   if (fieldName.includes('姓名') || fieldName.includes('Name')) {
-    return '1.5'
+    return '1.2'
   } else if (fieldName.includes('性別') || fieldName.includes('性别') || fieldName.includes('Gender')) {
-    return '0.8'
+    return '0.6'
   } else if (fieldName.includes('學校') || fieldName.includes('学校') || fieldName.includes('School')) {
-    return '2.5'
-  } else if (isTimeField(config)) {
     return '2'
+  } else if (fieldName.toLowerCase() === 'timestamp' || fieldType.toLowerCase() === 'timestamp') {
+    // 純 timestamp 欄位更窄一些
+    return '1.2'
+  } else if (isTimeField(config)) {
+    // 其他時間欄位
+    return '1.4'
+  } else if (fieldName.includes('班級') || fieldName.includes('班级') || fieldName.includes('Class')) {
+    return '0.8'
+  } else if (fieldName.includes('座號') || fieldName.includes('座号') || fieldName.includes('Number')) {
+    return '0.6'
   } else {
     return '1'
   }
@@ -609,6 +728,16 @@ const goToPage = async (newPage) => {
 }
 
 const nextPage = () => {
+  // 檢查輪播範圍限制
+  if (carouselRange.value !== 'unlimited') {
+    const maxPage = parseInt(carouselRange.value)
+    if (currentPage.value >= maxPage) {
+      // 達到限制，回到第 1 頁
+      goToPage(1)
+      return
+    }
+  }
+  
   const next = currentPage.value >= totalPages.value ? 1 : currentPage.value + 1
   goToPage(next)
 }
@@ -659,7 +788,184 @@ const clearSearch = async () => {
   startTypingAnimation()
 }
 
+// 欄寬調整相關方法
+const startResize = (event, columnIndex) => {
+  event.preventDefault()
+  isResizing.value = true
+  
+  const config = visibleDisplayConfig.value[columnIndex]
+  const currentFlex = parseFloat(getColumnFlex(config, columnIndex))
+  
+  // 計算所有欄位的總 flex 值
+  let totalFlex = 0
+  visibleDisplayConfig.value.forEach((col, idx) => {
+    totalFlex += parseFloat(getColumnFlex(col, idx))
+  })
+  
+  resizeData.value = {
+    startX: event.clientX,
+    startFlex: currentFlex,
+    columnIndex: columnIndex,
+    totalFlex: totalFlex
+  }
+  
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const handleResize = (event) => {
+  if (!isResizing.value) return
+  
+  const deltaX = event.clientX - resizeData.value.startX
+  const containerWidth = document.querySelector('.table-header')?.offsetWidth || 800
+  
+  // 將像素變化轉換為 flex 值變化
+  const flexPerPixel = resizeData.value.totalFlex / containerWidth
+  const flexDelta = deltaX * flexPerPixel
+  
+  // 計算新的 flex 值，最小值為 0.3
+  const newFlex = Math.max(0.3, resizeData.value.startFlex + flexDelta)
+  
+  // 更新自訂欄寬
+  const config = visibleDisplayConfig.value[resizeData.value.columnIndex]
+  const fieldName = config.欄位名稱 || config.栏位名称 || config.fieldName || ''
+  const customKey = `${fieldName}-${resizeData.value.columnIndex}`
+  
+  customColumnWidths.value[customKey] = newFlex.toFixed(2)
+}
+
+const stopResize = () => {
+  if (!isResizing.value) return
+  
+  isResizing.value = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  
+  // 儲存自訂欄寬到 localStorage
+  saveCustomWidths()
+}
+
+const resetColumnWidth = (columnIndex) => {
+  const config = visibleDisplayConfig.value[columnIndex]
+  const fieldName = config.欄位名稱 || config.栏位名称 || config.fieldName || ''
+  const customKey = `${fieldName}-${columnIndex}`
+  
+  delete customColumnWidths.value[customKey]
+  saveCustomWidths()
+}
+
+const resetAllColumnWidths = () => {
+  customColumnWidths.value = {}
+  customColumnNames.value = {}
+  saveCustomWidths()
+  saveCustomNames()
+  ElMessage.success('已重置所有欄位為預設寬度和名稱')
+}
+
+const saveCustomWidths = () => {
+  localStorage.setItem('scifiTableColumnWidths', JSON.stringify(customColumnWidths.value))
+}
+
+const loadCustomWidths = () => {
+  const saved = localStorage.getItem('scifiTableColumnWidths')
+  if (saved) {
+    try {
+      customColumnWidths.value = JSON.parse(saved)
+    } catch (error) {
+      console.error('載入自訂欄寬失敗:', error)
+    }
+  }
+}
+
+// 欄位名稱編輯相關方法
+const getColumnDisplayName = (config, index) => {
+  const fieldName = config.欄位名稱 || config.栏位名称 || config.fieldName || ''
+  const customKey = `${fieldName}-${index}`
+  
+  // 優先使用自訂名稱
+  if (customColumnNames.value[customKey]) {
+    return customColumnNames.value[customKey]
+  }
+  
+  // 使用原始顯示名稱
+  return config.顯示名稱 || config.显示名称 || config.欄位名稱 || config.栏位名称
+}
+
+const startEditColumnName = (index) => {
+  const config = visibleDisplayConfig.value[index]
+  editingColumn.value = index
+  editingText.value = getColumnDisplayName(config, index)
+  
+  // 等待 DOM 更新後聚焦輸入框
+  nextTick(() => {
+    const input = document.querySelector('.header-edit-input')
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+const confirmEdit = () => {
+  if (editingColumn.value === -1) return
+  
+  const config = visibleDisplayConfig.value[editingColumn.value]
+  const fieldName = config.欄位名稱 || config.栏位名称 || config.fieldName || ''
+  const customKey = `${fieldName}-${editingColumn.value}`
+  
+  // 如果輸入為空或與原始名稱相同，則刪除自訂名稱
+  const originalName = config.顯示名稱 || config.显示名称 || config.欄位名稱 || config.栏位名称
+  if (!editingText.value.trim() || editingText.value === originalName) {
+    delete customColumnNames.value[customKey]
+  } else {
+    customColumnNames.value[customKey] = editingText.value.trim()
+  }
+  
+  saveCustomNames()
+  editingColumn.value = -1
+  editingText.value = ''
+}
+
+const cancelEdit = () => {
+  editingColumn.value = -1
+  editingText.value = ''
+}
+
+const saveCustomNames = () => {
+  localStorage.setItem('scifiTableColumnNames', JSON.stringify(customColumnNames.value))
+}
+
+const loadCustomNames = () => {
+  const saved = localStorage.getItem('scifiTableColumnNames')
+  if (saved) {
+    try {
+      customColumnNames.value = JSON.parse(saved)
+    } catch (error) {
+      console.error('載入自訂欄位名稱失敗:', error)
+    }
+  }
+}
+
 // 顯示搜索提示
+const onCarouselRangeChange = (value) => {
+  emit('carousel-range-change', value)
+  
+  // 儲存到 localStorage
+  localStorage.setItem('carouselRange', value)
+  
+  // 如果當前頁超過範圍，回到第 1 頁
+  if (value !== 'unlimited') {
+    const maxPage = parseInt(value)
+    if (currentPage.value > maxPage) {
+      goToPage(1)
+    }
+  }
+}
+
 const showSearchHint = () => {
   // 找到 UID 欄位的配置
   const uidConfig = props.displayConfig.find(config => 
@@ -741,15 +1047,35 @@ onMounted(async () => {
     typingSpeed.value = parseInt(savedTypingSpeed)
   }
   
+  // 載入自訂欄寬
+  loadCustomWidths()
+  
+  // 載入自訂欄位名稱
+  loadCustomNames()
+  
+  // 載入輪播範圍設定
+  const savedCarouselRange = localStorage.getItem('carouselRange')
+  if (savedCarouselRange) {
+    carouselRange.value = savedCarouselRange
+  }
+  
   // 監聽打字機速度變化事件
   const handleTypingSpeedChange = (event) => {
     onTypingSpeedChange(event.detail.speed)
   }
   window.addEventListener('typingSpeedChange', handleTypingSpeedChange)
   
+  // 監聽輪播範圍變化事件
+  const handleCarouselRangeChange = (event) => {
+    carouselRange.value = event.detail.range
+    onCarouselRangeChange(event.detail.range)
+  }
+  window.addEventListener('carouselRangeChange', handleCarouselRangeChange)
+  
   // 清理函數
   const cleanup = () => {
     window.removeEventListener('typingSpeedChange', handleTypingSpeedChange)
+    window.removeEventListener('carouselRangeChange', handleCarouselRangeChange)
   }
   // 保存清理函數供 onUnmounted 使用
   window._sciFiTypingSpeedCleanup = cleanup
@@ -925,6 +1251,27 @@ onUnmounted(() => {
   gap: 8px;
 }
 
+.carousel-range-selector {
+  display: flex;
+  align-items: center;
+}
+
+.carousel-range-selector :deep(.el-select) {
+  --el-select-input-color: #00ff7f;
+  --el-select-input-focus-border-color: #00ff7f;
+}
+
+.carousel-range-selector :deep(.el-select .el-input__wrapper) {
+  background: rgba(0, 20, 40, 0.8);
+  border: 1px solid rgba(0, 255, 127, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.carousel-range-selector :deep(.el-select .el-input__inner) {
+  color: #00ff7f;
+  font-family: 'Courier New', monospace;
+}
+
 .typing-speed-control {
   display: flex;
   flex-direction: column;
@@ -1004,6 +1351,36 @@ onUnmounted(() => {
   letter-spacing: 1px;
 }
 
+/* 欄寬調整分隔線 */
+.column-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
+  transition: background-color 0.2s;
+}
+
+.column-resizer:hover {
+  background-color: rgba(0, 255, 127, 0.3);
+}
+
+.column-resizer:active {
+  background-color: rgba(0, 255, 127, 0.5);
+}
+
+/* 拖拉時的視覺回饋 */
+.table-header.resizing {
+  user-select: none;
+}
+
+.table-header.resizing .column-resizer {
+  background-color: rgba(0, 255, 127, 0.5);
+}
+
 .header-cell:last-child {
   border-right: none;
 }
@@ -1011,6 +1388,28 @@ onUnmounted(() => {
 .header-text {
   position: relative;
   z-index: 2;
+}
+
+/* 欄位名稱編輯輸入框 */
+.header-edit-input {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #00ff7f;
+  color: #00ff7f;
+  font-family: 'Courier New', monospace;
+  font-size: inherit;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  width: 90%;
+  text-align: center;
+  outline: none;
+  z-index: 3;
+  position: relative;
+}
+
+.header-edit-input:focus {
+  background: rgba(0, 0, 0, 0.9);
+  box-shadow: 0 0 10px rgba(0, 255, 127, 0.5);
 }
 
 .header-underline {

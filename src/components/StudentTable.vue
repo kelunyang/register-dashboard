@@ -417,12 +417,19 @@ onMounted(() => {
     currentPage.value = 1 // 重置到第一頁
     console.log(`📋 分頁大小已更新為: ${pageSize.value}位`)
   })
+  
+  // 監聽自動換頁間隔變化
+  window.addEventListener('autoPlayIntervalChange', (event) => {
+    autoPlayInterval.value = event.detail.interval
+    console.log(`⏰ 自動換頁間隔已即時更新為: ${autoPlayInterval.value}秒`)
+  })
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateScreenSize)
   window.removeEventListener('storage', handleStorageChange)
   window.removeEventListener('tablePagesizeChange', () => {})
+  window.removeEventListener('autoPlayIntervalChange', () => {})
 })
 
 // 表格樣式

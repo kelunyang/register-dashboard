@@ -146,6 +146,12 @@ function getConfigDetails(sheetId) {
       };
     }
     
+    // 過濾掉特殊功能為 UID 的欄位
+    const filteredConfigForDetails = displayConfig.config.filter(config => {
+      const specialFunction = config['特殊功能'] || config['功能'] || '';
+      return specialFunction.toUpperCase() !== 'UID';
+    });
+    
     // 整理配置詳情
     const configDetails = {
       sheetInfo: {
@@ -163,21 +169,21 @@ function getConfigDetails(sheetId) {
       },
       
       displayConfig: {
-        totalFields: displayConfig.config.length,
+        totalFields: filteredConfigForDetails.length,
         uidField: displayConfig.config.find(c => c['特殊功能'] === 'UID')?.['欄位名稱'] || null,
         
-        // 按顯示區塊分組
+        // 按顯示區塊分組（已過濾 UID 欄位）
         fieldsByBlock: {
-          StudentTable: displayConfig.config.filter(c => c['顯示區塊'].includes('StudentTable')),
-          TypeStatistics: displayConfig.config.filter(c => c['顯示區塊'].includes('TypeStatistics')),
-          SchoolStatistics: displayConfig.config.filter(c => c['顯示區塊'].includes('SchoolStatistics')),
-          Other: displayConfig.config.filter(c => !c['顯示區塊'].some(block => 
+          StudentTable: filteredConfigForDetails.filter(c => c['顯示區塊'].includes('StudentTable')),
+          TypeStatistics: filteredConfigForDetails.filter(c => c['顯示區塊'].includes('TypeStatistics')),
+          SchoolStatistics: filteredConfigForDetails.filter(c => c['顯示區塊'].includes('SchoolStatistics')),
+          Other: filteredConfigForDetails.filter(c => !c['顯示區塊'].some(block => 
             ['StudentTable', 'TypeStatistics', 'SchoolStatistics'].includes(block)
           ))
         },
         
-        // 預處理規則統計
-        preprocessingRules: displayConfig.config
+        // 預處理規則統計（已過濾 UID 欄位）
+        preprocessingRules: filteredConfigForDetails
           .filter(c => c['預處理'] && c['預處理'].trim())
           .map(c => ({
             field: c['欄位名稱'],
@@ -185,8 +191,8 @@ function getConfigDetails(sheetId) {
             description: getPreprocessingDescription(c['預處理'])
           })),
           
-        // 特殊功能統計
-        specialFunctions: displayConfig.config
+        // 特殊功能統計（已過濾 UID 欄位）
+        specialFunctions: filteredConfigForDetails
           .filter(c => c['特殊功能'] && c['特殊功能'].trim())
           .map(c => ({
             field: c['欄位名稱'],
@@ -1209,17 +1215,56 @@ function getDashboardData(sheetId = null) {
       displayConfig.config
     );
     
+    // 過濾掉特殊功能為 UID 的欄位，不傳送給前端
+    const filteredDisplayConfig = displayConfig.config.filter(config => {
+      const specialFunction = config['特殊功能'] || config['功能'] || '';
+      return specialFunction.toUpperCase() !== 'UID';
+    });
+    
+    // 找出 UID 欄位名稱，從學生資料和報到記錄中移除
+    const uidFieldNames = displayConfig.config
+      .filter(config => {
+        const specialFunction = config['特殊功能'] || config['功能'] || '';
+        return specialFunction.toUpperCase() === 'UID';
+      })
+      .map(config => config['欄位名稱'] || config['栏位名称']);
+    
+    // 從學生資料中移除 UID 欄位內容
+    const filteredStudents = processedData.students.map(student => {
+      const filteredStudent = { ...student };
+      uidFieldNames.forEach(fieldName => {
+        if (fieldName && filteredStudent[fieldName] !== undefined) {
+          delete filteredStudent[fieldName];
+        }
+      });
+      return filteredStudent;
+    });
+    
+    // 從報到記錄中移除 UID 欄位內容
+    const filteredCheckinLog = processedData.checkinLog.map(record => {
+      const filteredRecord = { ...record };
+      uidFieldNames.forEach(fieldName => {
+        if (fieldName && filteredRecord[fieldName] !== undefined) {
+          delete filteredRecord[fieldName];
+        }
+      });
+      return filteredRecord;
+    });
+    
+    log(`🔒 已過濾 UID 欄位，原始: ${displayConfig.config.length} 個，過濾後: ${filteredDisplayConfig.length} 個`);
+    log(`🔒 已從資料中移除 UID 欄位內容: ${uidFieldNames.join(', ')}`);
+    
     return {
       success: true,
       sheetId: sheetId,
       activityStatus: activityStatus,
-      students: processedData.students,
-      checkinLog: processedData.checkinLog,
-      displayConfig: displayConfig.config,
+      students: filteredStudents,
+      checkinLog: filteredCheckinLog,
+      displayConfig: filteredDisplayConfig,
       timestamp: new Date().toISOString(),
       metadata: {
-        totalStudents: processedData.students.length,
-        totalCheckins: processedData.checkinLog.length,
+        totalStudents: filteredStudents.length,
+        totalCheckins: filteredCheckinLog.length,
         targetSheetId: sheetId,
         configVersion: displayConfig.version,
         primaryKey: joinedData.primaryKey,

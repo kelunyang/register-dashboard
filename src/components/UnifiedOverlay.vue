@@ -10,19 +10,17 @@
     
     <!-- 主要彈窗 -->
     <div class="overlay-modal">
-      <!-- 關閉按鈕 -->
-      <button 
-        class="close-button" 
-        @click="closeOverlay"
-        :aria-label="'關閉'"
-        v-if="allowClose"
-      >
-        <el-icon size="20"><Close /></el-icon>
-      </button>
-      
       <!-- 頁面標題 -->
       <div class="modal-header">
         <h2 class="modal-title">系統控制台</h2>
+        <!-- 關閉按鈕 -->
+        <button 
+          class="close-button" 
+          @click="handleCloseClick"
+          :aria-label="'關閉'"
+        >
+          <el-icon size="20"><Close /></el-icon>
+        </button>
       </div>
       
       <!-- Tabs 導航和內容 -->
@@ -462,6 +460,40 @@
             
             <div class="typing-speed-preview">
               <div class="preview-text">設定科幻表格的打字動畫速度</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 輪播範圍設定 -->
+        <div class="settings-section">
+          <h3>🎯 輪播範圍設定</h3>
+          <div class="carousel-range-config">
+            <div class="config-row">
+              <span class="config-label">當前設定:</span>
+              <span class="config-value">{{ getCarouselRangeLabel(carouselRangeSetting) }}</span>
+            </div>
+            
+            <div class="config-row">
+              <span class="config-label">選擇範圍:</span>
+              <div class="carousel-range-selector-container">
+                <el-select
+                  v-model="carouselRangeSetting"
+                  placeholder="選擇輪播範圍"
+                  @change="onCarouselRangeSettingChange"
+                  style="width: 200px"
+                >
+                  <el-option
+                    v-for="option in carouselRangeOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </el-select>
+              </div>
+            </div>
+            
+            <div class="carousel-range-preview">
+              <div class="preview-text">設定科幻表格自動輪播的頁數範圍</div>
             </div>
           </div>
         </div>
@@ -934,7 +966,7 @@ const emit = defineEmits([
   'close', 'refresh', 'mode-change',
   'load-config-details', 'clear-ui-settings', 'clear-current-sheet-history', 
   'clear-all-data', 'export-data', 'import-data', 'config-debug-change',
-  'auto-refresh-interval-change', 'auto-play-interval-change'
+  'auto-refresh-interval-change', 'auto-play-interval-change', 'auto-refresh-status-change'
 ])
 
 // 響應式數據
@@ -967,6 +999,17 @@ const autoPlayIntervalSetting = ref(10)
 
 // 打字機速度相關
 const typingSpeedSetting = ref(50)
+
+// 輪播範圍相關
+const carouselRangeSetting = ref('unlimited')
+const carouselRangeOptions = [
+  { value: '1', label: '前 1 頁' },
+  { value: '2', label: '前 2 頁' },
+  { value: '3', label: '前 3 頁' },
+  { value: '4', label: '前 4 頁' },
+  { value: '5', label: '前 5 頁' },
+  { value: 'unlimited', label: '無限制' }
+]
 
 // 打字機顏色設定相關
 const normalFieldCompleteColor = ref('#00ff7f')
@@ -1129,6 +1172,15 @@ const handleBackdropClick = () => {
   if (props.allowClose) {
     closeOverlay()
   }
+}
+
+const handleCloseClick = () => {
+  // 如果在設定 tab，確保設定已儲存
+  if (currentMode.value === 'settings') {
+    // 設定已經在各個 onChange 事件中即時儲存到 localStorage
+    console.log('✅ 設定已儲存，關閉視窗')
+  }
+  closeOverlay()
 }
 
 const handleCloseAction = () => {
@@ -1377,11 +1429,20 @@ const setAutoRefreshGem = async () => {
       autoRefreshGemInput.value = ''
       showGemInput.value = false
       
+      // 通知父組件自動刷新狀態已改變
+      emit('auto-refresh-status-change', true)
+      emit('auto-refresh-interval-change', autoRefreshInterval.value)
+      
       ElMessage.success('自動刷新已啟用')
     } else {
       gemSuccess.value = false
       gemMessage.value = `❌ ${result.message || '密鑰驗證失敗'}`
       ElMessage.error(result.message || '密鑰驗證失敗')
+      
+      // 如果是清除設定，也要通知父組件
+      if (!autoRefreshGemInput.value.trim()) {
+        emit('auto-refresh-status-change', false)
+      }
     }
   } catch (error) {
     gemSuccess.value = false
@@ -1427,6 +1488,11 @@ const onAutoPlayIntervalSettingChange = (value) => {
   // 通知父組件更新倒數計時間隔
   emit('auto-play-interval-change', value)
   
+  // 發送自定義事件，讓其他組件立即更新
+  window.dispatchEvent(new CustomEvent('autoPlayIntervalChange', {
+    detail: { interval: value }
+  }))
+  
   console.log(`⏰ 換頁倒數計時已更新為: ${value}秒`)
 }
 
@@ -1453,6 +1519,24 @@ const onTypingSpeedSettingChange = (value) => {
   }))
   
   console.log(`⚡ 打字機速度已更新為: ${value}ms (${getTypingSpeedLabel(value)})`)
+}
+
+// 輪播範圍相關方法
+const getCarouselRangeLabel = (value) => {
+  const option = carouselRangeOptions.find(opt => opt.value === value)
+  return option ? option.label : '無限制'
+}
+
+const onCarouselRangeSettingChange = (value) => {
+  // 保存到 localStorage
+  localStorage.setItem('carouselRange', value)
+  
+  // 觸發自定義事件通知其他組件
+  window.dispatchEvent(new CustomEvent('carouselRangeChange', {
+    detail: { range: value }
+  }))
+  
+  console.log(`🎯 輪播範圍已更新為: ${getCarouselRangeLabel(value)}`)
 }
 
 // 打字機顏色相關方法
@@ -1574,6 +1658,12 @@ onMounted(() => {
     typingSpeedSetting.value = parseInt(savedTypingSpeed)
   }
   
+  // 載入已保存的輪播範圍設定
+  const savedCarouselRange = localStorage.getItem('carouselRange')
+  if (savedCarouselRange) {
+    carouselRangeSetting.value = savedCarouselRange
+  }
+  
   // 載入已保存的顏色設定
   const savedNormalColor = localStorage.getItem('normalFieldCompleteColor')
   if (savedNormalColor) {
@@ -1685,6 +1775,10 @@ onUnmounted(() => {
   padding: 20px 30px 0 30px;
   background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
   border-bottom: 1px solid #4a4a4a;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .modal-title {
@@ -1730,9 +1824,6 @@ onUnmounted(() => {
 }
 
 .close-button {
-  position: absolute;
-  top: 20px;
-  right: 20px;
   background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 50%;
@@ -1740,6 +1831,7 @@ onUnmounted(() => {
   height: 36px;
   color: #cccccc;
   cursor: pointer;
+  margin-left: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3148,6 +3240,26 @@ onUnmounted(() => {
   min-width: 50px;
   text-align: right;
   font-family: 'Courier New', monospace;
+}
+
+.carousel-range-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.carousel-range-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.carousel-range-selector-container :deep(.el-select) {
+  flex: 1;
+}
+
+.carousel-range-preview {
+  margin-top: 10px;
 }
 
 .typing-speed-preview {
